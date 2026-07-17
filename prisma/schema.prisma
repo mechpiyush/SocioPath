@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  image     String?
+  role      String    @default("USER")
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  price       Float     @default(1500)
+  minCapacity Int       @default(10)
+  maxCapacity Int       @default(20)
+  status      String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  createdAt   DateTime  @default(now())
+  bookings    Booking[]
+}
+
+model Booking {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId           String
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?  @unique
+  razorpaySignature String?
+  status            String   @default("PENDING") // PENDING, CONFIRMED, REFUNDED
+  createdAt         DateTime @default(now())
+}
