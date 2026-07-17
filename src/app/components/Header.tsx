@@ -48,7 +48,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
               >
                 <div className="avatar-image-container">
                   {user.image ? (
-                    <img src={user.image} alt={user.name} className="avatar-img" />
+                    <img src={user.image} alt={user.name} className="avatar-img" referrerPolicy="no-referrer" />
                   ) : (
                     <User size={18} />
                   )}

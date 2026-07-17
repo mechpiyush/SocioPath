@@ -32,23 +32,51 @@ export default function Home() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [lastBooking, setLastBooking] = useState<any>(null);
 
+  // Site Loading screen states
+  const [siteLoading, setSiteLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
+
   // Read developer configuration
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
   useEffect(() => {
-    // 1. Fetch user session
-    fetch('/api/auth/session')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.authenticated) {
-          setUser(data.user);
-        }
-      })
-      .catch((err) => console.error('Failed to load session:', err));
+    const initializeApp = async () => {
+      try {
+        await Promise.all([
+          // 1. Fetch user session
+          fetch('/api/auth/session')
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.authenticated) {
+                setUser(data.user);
+              }
+            })
+            .catch((err) => console.error('Failed to load session:', err)),
 
-    // 2. Fetch events
-    fetchEvents();
+          // 2. Fetch events
+          fetchEvents()
+        ]);
+      } catch (err) {
+        console.error('Failed to initialize app state:', err);
+      } finally {
+        // Smooth delay to avoid instant splash flash
+        setTimeout(() => {
+          setSiteLoading(false);
+        }, 800);
+      }
+    };
+
+    initializeApp();
   }, []);
+
+  useEffect(() => {
+    if (!siteLoading) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 500); // 500ms fade transition
+      return () => clearTimeout(timer);
+    }
+  }, [siteLoading]);
 
   const fetchEvents = async () => {
     setEventsLoading(true);
@@ -211,6 +239,19 @@ export default function Home() {
 
   return (
     <div className="site-wrapper" id="home-view-root">
+      {showSplash && (
+        <div className={`site-loading-screen ${!siteLoading ? 'fade-out' : ''}`} id="site-loading-overlay">
+          <div className="loading-screen-content">
+            <span className="logo-icon-glow-large"></span>
+            <h1 className="loading-logo-text">SocioPath</h1>
+            <p className="loading-subtitle">Mumbai's Premium Late-Night Social Experience</p>
+            <div className="loading-bar-container">
+              <div className="loading-bar-progress"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Header */}
       <Header
         user={user}

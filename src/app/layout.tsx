@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "SocioPath | Premium Late-Night Social Experience in Mumbai",
@@ -15,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${plusJakartaSans.variable} ${outfit.variable}`}>
       <body>
         {children}
         {/* Scripts for Google OAuth and Razorpay Payments */}

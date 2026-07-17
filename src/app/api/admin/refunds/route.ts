@@ -31,7 +31,7 @@ export async function POST() {
 
     for (const event of failedEvents) {
       // Process database transaction for updates
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // Mark event as CANCELLED
         await tx.event.update({
           where: { id: event.id },

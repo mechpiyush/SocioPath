@@ -52,7 +52,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           <div className="user-profile-header">
             <div className="avatar-wrapper">
               {user.image ? (
-                <img src={user.image} alt={user.name} className="user-avatar-large" />
+                <img src={user.image} alt={user.name} className="user-avatar-large" referrerPolicy="no-referrer" />
               ) : (
                 <div className="avatar-placeholder">
                   <User size={32} />
