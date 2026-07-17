@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Confirm booking and update event status if threshold met
-    const updatedBooking = await prisma.$transaction(async (tx) => {
+    const updatedBooking = await prisma.$transaction(async (tx: any) => {
       const b = await tx.booking.update({
         where: { id: booking.id },
         data: {
