@@ -24,7 +24,7 @@ export async function GET() {
       orderBy: { date: 'asc' }
     });
 
-    const mappedEvents = events.map(event => ({
+    const mappedEvents = events.map((event: any) => ({
       id: event.id,
       title: event.title,
       description: event.description,
