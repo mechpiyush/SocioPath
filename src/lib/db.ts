@@ -1,12 +1,3 @@
-/**
- * db.ts — Prisma Client singleton
- *
- * LOCAL DEV:  uses SQLite via PrismaBetterSqlite3 adapter (DATABASE_URL=file:./dev.db)
- * PRODUCTION: uses PostgreSQL (Supabase) — set DATABASE_URL to your Supabase connection string
- *
- * The adapter is chosen at runtime based on the DATABASE_URL prefix.
- */
-
 import { PrismaClient } from '@prisma/client';
 
 declare global {
@@ -17,22 +8,28 @@ declare global {
 function buildPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
   const isPostgres = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  const commonOptions = {
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  };
 
   if (isPostgres) {
-    // PostgreSQL / Supabase — standard PrismaClient, no adapter needed
-    return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-    });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Pool } = require('pg');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaPg } = require('@prisma/adapter-pg');
+    const pool = new Pool({ connectionString: databaseUrl });
+    const adapter = new PrismaPg(pool);
+    return new PrismaClient({ ...commonOptions, adapter } as any);
   }
 
-  // SQLite for local development — use the better-sqlite3 adapter
+  // SQLite for local development
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-  const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
-  return new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-  });
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Database = require('better-sqlite3');
+  const db = new Database('dev.db');
+  const adapter = new PrismaBetterSqlite3(db);
+  return new PrismaClient({ ...commonOptions, adapter } as any);
 }
 
 export const prisma: PrismaClient =

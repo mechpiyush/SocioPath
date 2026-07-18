@@ -44,7 +44,7 @@ export async function GET() {
     return NextResponse.json({ events: mappedEvents, cached: false });
   } catch (error) {
     console.error('Events endpoint error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', details: String(error) }, { status: 500 });
   }
 }
 export const dynamic = 'force-dynamic';
