@@ -47,22 +47,25 @@ export async function POST(req: NextRequest) {
       where: { email },
     });
 
+    const calculatedRole = email === 'iiit.piyush@gmail.com' ? 'ADMIN' : 'USER';
+
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
           name,
           image,
-          role: 'USER',
+          role: calculatedRole,
         },
       });
     } else {
-      // Update name/image if changed
+      // Update name/image/role if changed
       user = await prisma.user.update({
         where: { email },
         data: {
           name: name || user.name,
           image: image || user.image,
+          role: calculatedRole,
         },
       });
     }

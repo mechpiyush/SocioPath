@@ -46,6 +46,7 @@ next-env.d.ts
 *.db-journal
 *.db-shm
 *.db-wal
+!public/dev.db
 
 .vercel
 .env*

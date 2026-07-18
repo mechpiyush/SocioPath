@@ -33,7 +33,7 @@ export default function RootLayout({
         {children}
         {/* Scripts for Google OAuth and Razorpay Payments */}
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+        <script src="https://checkout.razorpay.com/v1/checkout.js" async defer></script>
       </body>
     </html>
   );
