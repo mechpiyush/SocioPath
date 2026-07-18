@@ -11,34 +11,34 @@ model User {
   email      String    @unique
   name       String?
   image      String?
-  role       String    @default("USER")
-  gender     String?
+  role       String    @default("USER") // USER, ADMIN
+  gender     String?                    // MALE, FEMALE, OTHER
   city       String?
   hometown   String?
   occupation String?
   mobile     String?
-  dob        String?   // YYYY-MM-DD
+  dob        String?                    // YYYY-MM-DD
   instagram  String?
   createdAt  DateTime  @default(now())
   bookings   Booking[]
   reviews    Review[]
+  logs       ActionLog[]
 }
-
 
 model Event {
-  id             String    @id @default(uuid())
-  title          String
-  description    String
-  date           DateTime
-  price          Float     @default(1500)
-  femaleDiscount Float     @default(0)
-  minCapacity    Int       @default(10)
-  maxCapacity    Int       @default(20)
-  status         String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
-  createdAt      DateTime  @default(now())
-  bookings       Booking[]
+  id                   String    @id @default(uuid())
+  title                String
+  description          String
+  date                 DateTime
+  price                Float     @default(1500)
+  femaleDiscount       Float     @default(0)
+  genderPricingEnabled Boolean   @default(true)
+  minCapacity          Int       @default(10)
+  maxCapacity          Int       @default(20)
+  status               String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  createdAt            DateTime  @default(now())
+  bookings             Booking[]
 }
-
 
 model Booking {
   id                String   @id @default(uuid())
@@ -62,3 +62,14 @@ model Review {
   createdAt DateTime @default(now())
 }
 
+// Tracks key user actions for analytics and audit trail
+model ActionLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // e.g. LOGIN, BOOKING_CREATED, BOOKING_CONFIRMED, PROFILE_UPDATED
+  metadata  String?  // JSON string with extra context
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}

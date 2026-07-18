@@ -1,41 +1,43 @@
+/**
+ * db.ts — Prisma Client singleton
+ *
+ * LOCAL DEV:  uses SQLite via PrismaBetterSqlite3 adapter (DATABASE_URL=file:./dev.db)
+ * PRODUCTION: uses PostgreSQL (Supabase) — set DATABASE_URL to your Supabase connection string
+ *
+ * The adapter is chosen at runtime based on the DATABASE_URL prefix.
+ */
+
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import fs from 'fs';
-import path from 'path';
 
-let databaseUrl = 'file:./dev.db';
-
-const isVercel = process.env.VERCEL === '1';
-
-if (isVercel) {
-  const tmpDbPath = '/tmp/dev.db';
-  const bundledDbPath = path.join(process.cwd(), 'public', 'dev.db');
-
-  if (!fs.existsSync(tmpDbPath)) {
-    try {
-      if (fs.existsSync(bundledDbPath)) {
-        fs.copyFileSync(bundledDbPath, tmpDbPath);
-        console.log(`Database template copied from ${bundledDbPath} to ${tmpDbPath}`);
-      } else {
-        console.warn(`Pre-seeded database template not found at: ${bundledDbPath}`);
-      }
-    } catch (err) {
-      console.error('Error copying SQLite database to /tmp:', err);
-    }
-  }
-  databaseUrl = `file:${tmpDbPath}`;
-} else {
-  databaseUrl = 'file:./dev.db';
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined;
 }
 
-const adapter = new PrismaBetterSqlite3({
-  url: databaseUrl,
-});
+function buildPrismaClient(): PrismaClient {
+  const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+  const isPostgres = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+  if (isPostgres) {
+    // PostgreSQL / Supabase — standard PrismaClient, no adapter needed
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    });
+  }
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({ adapter });
+  // SQLite for local development — use the better-sqlite3 adapter
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+  const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  });
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma: PrismaClient =
+  globalThis.__prisma ?? (globalThis.__prisma = buildPrismaClient());
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.__prisma = prisma;
+}
