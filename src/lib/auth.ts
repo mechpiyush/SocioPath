@@ -9,6 +9,13 @@ export type SessionUser = {
   name: string | null;
   image: string | null;
   role: string;
+  gender?: string | null;
+  city?: string | null;
+  hometown?: string | null;
+  occupation?: string | null;
+  mobile?: string | null;
+  dob?: string | null;
+  instagram?: string | null;
 };
 
 export async function setSession(user: SessionUser) {

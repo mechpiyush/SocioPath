@@ -1,19 +1,49 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, User, Ticket, LogOut, CheckCircle, Clock, RotateCcw, AlertCircle, IndianRupee } from 'lucide-react';
+import { X, User, Ticket, LogOut, CheckCircle, Clock, RotateCcw, AlertCircle, IndianRupee, Settings, Save } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: any;
   onSignOut: () => void;
+  onUserUpdate?: (updatedUser: any) => void;
 }
 
-export default function ProfileModal({ isOpen, onClose, user, onSignOut }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserUpdate }: ProfileModalProps) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'profile'>('bookings');
+
+  // Form State
+  const [name, setName] = useState('');
+  const [gender, setGender] = useState('');
+  const [city, setCity] = useState('');
+  const [hometown, setHometown] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [dob, setDob] = useState('');
+  const [instagram, setInstagram] = useState('');
+
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // Sync state if user prop changes
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setGender(user.gender || '');
+      setCity(user.city || '');
+      setHometown(user.hometown || '');
+      setOccupation(user.occupation || '');
+      setMobile(user.mobile || '');
+      setDob(user.dob || '');
+      setInstagram(user.instagram || '');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -33,6 +63,50 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
       setError(err.message || 'An error occurred while loading bookings.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSaveSuccess(false);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, gender, city, hometown, occupation, mobile, dob, instagram }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update profile');
+      onUserUpdate?.(data.user);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Error saving profile details.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to cancel this booking? You will receive an immediate refund.')) return;
+    setCancellingId(bookingId);
+    setError('');
+    try {
+      const res = await fetch('/api/bookings/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel booking');
+      alert('Booking cancelled successfully! Refund has been initiated.');
+      fetchBookings();
+    } catch (err: any) {
+      setError(err.message || 'Error cancelling booking.');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -77,89 +151,245 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
             </button>
           </div>
 
+          {/* Navigation Tabs */}
+          <div className="profile-tabs">
+            <button 
+              className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bookings')}
+            >
+              <Ticket size={16} />
+              <span>Reservations</span>
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('profile')}
+            >
+              <Settings size={16} />
+              <span>Edit Profile</span>
+            </button>
+          </div>
+
+          {error && (
+            <div className="profile-error-banner">
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Bookings Section */}
-          <div className="bookings-section">
-            <h3 className="section-title">
-              <Ticket size={18} />
-              <span>Your Booking History</span>
-            </h3>
+          {activeTab === 'bookings' && (
+            <div className="bookings-section">
+              {loading ? (
+                <div className="bookings-status-box">
+                  <p>Loading your reservations...</p>
+                </div>
+              ) : bookings.length === 0 ? (
+                <div className="bookings-empty-box">
+                  <p>No bookings found.</p>
+                  <button
+                    id="book-first-session-btn"
+                    className="btn-primary start-booking-btn"
+                    onClick={onClose}
+                  >
+                    Explore Weekend Sessions
+                  </button>
+                </div>
+              ) : (
+                <div className="bookings-list" id="user-bookings-container">
+                  {bookings.map((booking) => {
+                    const eventDate = new Date(booking.event.date);
+                    const formattedDate = eventDate.toLocaleDateString('en-IN', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                    
+                    const isConfirmed = booking.status === 'CONFIRMED';
+                    const isPending = booking.status === 'PENDING';
+                    const isRefunded = booking.status === 'REFUNDED';
 
-            {loading ? (
-              <div className="bookings-status-box">
-                <p>Loading your reservations...</p>
-              </div>
-            ) : error ? (
-              <div className="bookings-error-box">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            ) : bookings.length === 0 ? (
-              <div className="bookings-empty-box">
-                <p>No bookings found.</p>
-                <button
-                  id="book-first-session-btn"
-                  className="btn-primary start-booking-btn"
-                  onClick={onClose}
-                >
-                  Explore Weekend Sessions
-                </button>
-              </div>
-            ) : (
-              <div className="bookings-list" id="user-bookings-container">
-                {bookings.map((booking) => {
-                  const eventDate = new Date(booking.event.date).toLocaleDateString('en-IN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
-                  
-                  const isConfirmed = booking.status === 'CONFIRMED';
-                  const isPending = booking.status === 'PENDING';
-                  const isRefunded = booking.status === 'REFUNDED';
+                    // Check if cancellation is allowed (at least 3 days prior)
+                    const threeDaysPrior = new Date(eventDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+                    const now = new Date();
+                    const canCancel = isConfirmed && now <= threeDaysPrior;
 
-                  return (
-                    <div 
-                      key={booking.id} 
-                      className={`booking-item-card ${isConfirmed ? 'border-confirmed' : isRefunded ? 'border-refunded' : 'border-pending'}`}
-                    >
-                      <div className="booking-info-left">
-                        <h4>{booking.event.title}</h4>
-                        <p className="booking-event-date">{eventDate}</p>
-                        <div className="booking-payment-details">
-                          <span className="price-tag">
-                            <IndianRupee size={12} />
-                            {booking.event.price.toLocaleString('en-IN')}
-                          </span>
-                          <span className="order-id">Order ID: {booking.razorpayOrderId.substring(0, 16)}...</span>
+                    return (
+                      <div 
+                        key={booking.id} 
+                        className={`booking-item-card ${isConfirmed ? 'border-confirmed' : isRefunded ? 'border-refunded' : 'border-pending'}`}
+                      >
+                        <div className="booking-info-left">
+                          <h4>{booking.event.title}</h4>
+                          <p className="booking-event-date">{formattedDate}</p>
+                          <div className="booking-payment-details">
+                            <span className="price-tag">
+                              <IndianRupee size={12} />
+                              {booking.event.price.toLocaleString('en-IN')}
+                            </span>
+                            <span className="order-id">Order ID: {booking.razorpayOrderId.substring(0, 16)}...</span>
+                          </div>
+                        </div>
+
+                        <div className="booking-info-right">
+                          {isConfirmed ? (
+                            <div className="status-container">
+                              <div className="status-indicator status-confirmed" id={`status-badge-confirmed-${booking.id}`}>
+                                <CheckCircle size={14} />
+                                <span>Confirmed</span>
+                              </div>
+                              {canCancel && (
+                                <button
+                                  className="btn-cancel-booking"
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  disabled={cancellingId === booking.id}
+                                >
+                                  {cancellingId === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                                </button>
+                              )}
+                            </div>
+                          ) : isPending ? (
+                            <div className="status-indicator status-pending" id={`status-badge-pending-${booking.id}`}>
+                              <Clock size={14} />
+                              <span>Pending</span>
+                            </div>
+                          ) : (
+                            <div className="status-indicator status-refunded" id={`status-badge-refunded-${booking.id}`}>
+                              <RotateCcw size={14} />
+                              <span>Refunded</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
-                      <div className="booking-info-right">
-                        {isConfirmed ? (
-                          <div className="status-indicator status-confirmed" id={`status-badge-confirmed-${booking.id}`}>
-                            <CheckCircle size={14} />
-                            <span>Confirmed</span>
-                          </div>
-                        ) : isPending ? (
-                          <div className="status-indicator status-pending" id={`status-badge-pending-${booking.id}`}>
-                            <Clock size={14} />
-                            <span>Pending</span>
-                          </div>
-                        ) : (
-                          <div className="status-indicator status-refunded" id={`status-badge-refunded-${booking.id}`}>
-                            <RotateCcw size={14} />
-                            <span>Refunded</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Edit Profile Section */}
+          {activeTab === 'profile' && (
+            <form className="profile-edit-form" onSubmit={handleSaveProfile}>
+              {saveSuccess && (
+                <div className="profile-success-banner">
+                  <span>Profile updated successfully!</span>
+                </div>
+              )}
+
+              <div className="form-row-grid">
+                <div className="profile-form-group">
+                  <label htmlFor="edit-name">Display Name</label>
+                  <input
+                    type="text"
+                    id="edit-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="profile-form-group">
+                  <label htmlFor="edit-gender">Gender</label>
+                  <select
+                    id="edit-gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div className="form-row-grid">
+                <div className="profile-form-group">
+                  <label htmlFor="edit-mobile">Mobile Number</label>
+                  <input
+                    type="tel"
+                    id="edit-mobile"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    placeholder="10-digit number"
+                    pattern="[0-9]{10}"
+                  />
+                </div>
+
+                <div className="profile-form-group">
+                  <label htmlFor="edit-dob">Date of Birth</label>
+                  <input
+                    type="date"
+                    id="edit-dob"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row-grid">
+                <div className="profile-form-group">
+                  <label htmlFor="edit-city">Current City</label>
+                  <input
+                    type="text"
+                    id="edit-city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Mumbai"
+                  />
+                </div>
+
+                <div className="profile-form-group">
+                  <label htmlFor="edit-hometown">Hometown</label>
+                  <input
+                    type="text"
+                    id="edit-hometown"
+                    value={hometown}
+                    onChange={(e) => setHometown(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row-grid">
+                <div className="profile-form-group">
+                  <label htmlFor="edit-occupation">Occupation</label>
+                  <input
+                    type="text"
+                    id="edit-occupation"
+                    value={occupation}
+                    onChange={(e) => setOccupation(e.target.value)}
+                    placeholder="e.g. Developer, Designer"
+                  />
+                </div>
+
+                <div className="profile-form-group">
+                  <label htmlFor="edit-instagram">Instagram Handle (Optional)</label>
+                  <div className="insta-input-wrapper">
+                    <span className="at-prefix">@</span>
+                    <input
+                      type="text"
+                      id="edit-instagram"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      placeholder="username"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary save-profile-btn"
+                disabled={saving}
+              >
+                <Save size={16} />
+                <span>{saving ? 'Saving...' : 'Save Profile'}</span>
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -187,6 +417,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           border: 1px solid rgba(255, 255, 255, 0.08);
           max-height: 85vh;
           overflow-y: auto;
+          background: rgba(11, 15, 25, 0.98);
         }
         .close-btn {
           position: absolute;
@@ -200,6 +431,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           justify-content: center;
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid var(--border-color);
+          cursor: pointer;
         }
         .close-btn:hover {
           color: var(--fg-primary);
@@ -212,7 +444,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           display: flex;
           align-items: center;
           gap: 1.5rem;
-          margin-bottom: 2.5rem;
+          margin-bottom: 2rem;
           border-bottom: 1px solid var(--border-color);
           padding-bottom: 2rem;
           flex-wrap: wrap;
@@ -263,40 +495,77 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
         .signout-action-btn {
           padding: 0.6rem 1.2rem;
           font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
         .signout-action-btn:hover {
           background: rgba(244, 63, 94, 0.1) !important;
           color: var(--accent-rose) !important;
           border-color: rgba(244, 63, 94, 0.3) !important;
         }
+        .profile-tabs {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 1rem;
+        }
+        .tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: none;
+          border: none;
+          color: var(--fg-secondary);
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 0.5rem 1rem;
+          border-radius: 8px;
+          transition: all 0.2s;
+        }
+        .tab-btn:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .tab-btn.active {
+          color: var(--accent-indigo);
+          background: rgba(99, 102, 241, 0.08);
+        }
+        .profile-error-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(244, 63, 94, 0.1);
+          color: var(--accent-rose);
+          border: 1px solid rgba(244, 63, 94, 0.2);
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+        }
+        .profile-success-banner {
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--accent-emerald);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+        }
         .bookings-section {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
         }
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 1.1rem;
-          color: #fff;
-        }
-        .bookings-status-box, .bookings-error-box, .bookings-empty-box {
+        .bookings-status-box, .bookings-empty-box {
           text-align: center;
           padding: 2.5rem;
           background: rgba(255, 255, 255, 0.01);
           border: 1px dashed var(--border-color);
           border-radius: 16px;
           color: var(--fg-secondary);
-        }
-        .bookings-error-box {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          color: var(--accent-rose);
-          background: rgba(244, 63, 94, 0.05);
-          border-color: rgba(244, 63, 94, 0.1);
         }
         .start-booking-btn {
           margin-top: 1rem;
@@ -306,7 +575,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           display: flex;
           flex-direction: column;
           gap: 1rem;
-          max-height: 350px;
+          max-height: 380px;
           overflow-y: auto;
           padding-right: 0.5rem;
         }
@@ -358,6 +627,12 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
           display: flex;
           align-items: center;
         }
+        .status-container {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.5rem;
+        }
         .status-indicator {
           display: flex;
           align-items: center;
@@ -380,6 +655,96 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut }: Profi
         .status-refunded {
           background: rgba(255, 255, 255, 0.05);
           color: var(--fg-secondary);
+        }
+        .btn-cancel-booking {
+          background: rgba(244, 63, 94, 0.08);
+          color: var(--accent-rose);
+          border: 1px solid rgba(244, 63, 94, 0.2);
+          border-radius: 6px;
+          padding: 0.3rem 0.6rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-cancel-booking:hover {
+          background: var(--accent-rose);
+          color: #fff;
+          border-color: var(--accent-rose);
+        }
+        
+        /* Edit Profile Form Styles */
+        .profile-edit-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+        .form-row-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+        }
+        .profile-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+        .profile-form-group label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--fg-secondary);
+        }
+        .profile-form-group input, .profile-form-group select {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 0.6rem 0.85rem;
+          color: #fff;
+          font-size: 0.9rem;
+          outline: none;
+          font-family: inherit;
+        }
+        .profile-form-group input:focus, .profile-form-group select:focus {
+          border-color: var(--accent-indigo);
+          box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
+        }
+        .insta-input-wrapper {
+          display: flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+        }
+        .insta-input-wrapper input {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          padding-left: 0.25rem;
+          flex-grow: 1;
+        }
+        .at-prefix {
+          padding-left: 0.85rem;
+          color: var(--fg-tertiary);
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+        .save-profile-btn {
+          align-self: flex-end;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          font-size: 0.9rem;
+          margin-top: 1rem;
+        }
+
+        @media (max-width: 576px) {
+          .form-row-grid {
+            grid-template-columns: 1fr;
+          }
+          .profile-body {
+            padding: 2rem 1.5rem;
+          }
         }
       `}</style>
     </div>

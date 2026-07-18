@@ -30,6 +30,7 @@ export async function GET() {
       description: event.description,
       date: event.date,
       price: event.price,
+      femaleDiscount: event.femaleDiscount,
       minCapacity: event.minCapacity,
       maxCapacity: event.maxCapacity,
       status: event.status,

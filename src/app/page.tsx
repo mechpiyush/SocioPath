@@ -8,6 +8,8 @@ import EventModal from '@/app/components/EventModal';
 import AuthModal from '@/app/components/AuthModal';
 import ProfileModal from '@/app/components/ProfileModal';
 import BookingSuccess from '@/app/components/BookingSuccess';
+import ReviewsSection from '@/app/components/ReviewsSection';
+import InfoModal from '@/app/components/InfoModal';
 import { ShieldCheck, Music, Sparkles } from 'lucide-react';
 
 interface Event {
@@ -27,6 +29,8 @@ export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeModal, setActiveModal] = useState<'details' | 'auth' | 'profile' | 'success' | null>(null);
+  const [infoModalType, setInfoModalType] = useState<'about' | 'privacy' | 'terms' | ''>('');
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   
   const [eventsLoading, setEventsLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -362,6 +366,7 @@ export default function Home() {
                 <EventCard
                   key={event.id}
                   event={event}
+                  user={user}
                   onClick={() => {
                     setSelectedEvent(event);
                     setActiveModal('details');
@@ -372,6 +377,9 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* Reviews & Retrospectives Section */}
+      <ReviewsSection user={user} />
 
       {/* Booking Simulator Overlay */}
       {bookingLoading && (
@@ -396,6 +404,7 @@ export default function Home() {
         onOpenAuth={() => setActiveModal('auth')}
         onInitializeBooking={handleInitializeBooking}
         bookingLoading={bookingLoading}
+        user={user}
       />
 
       <AuthModal
@@ -410,6 +419,7 @@ export default function Home() {
         onClose={() => setActiveModal(null)}
         user={user}
         onSignOut={handleSignOut}
+        onUserUpdate={setUser}
       />
 
       {activeModal === 'success' && (
@@ -423,7 +433,16 @@ export default function Home() {
       )}
 
       {/* Main Footer */}
-      <Footer />
+      <Footer onOpenInfo={(type) => { setInfoModalType(type); setIsInfoModalOpen(true); }} />
+
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => {
+          setIsInfoModalOpen(false);
+          setInfoModalType('');
+        }}
+        type={infoModalType}
+      />
 
       <style jsx global>{`
         .site-wrapper {

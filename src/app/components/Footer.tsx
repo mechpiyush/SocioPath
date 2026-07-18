@@ -2,7 +2,11 @@
 
 import { Mail, GraduationCap, Heart } from 'lucide-react';
 
-export default function Footer() {
+interface FooterProps {
+  onOpenInfo?: (type: 'about' | 'privacy' | 'terms') => void;
+}
+
+export default function Footer({ onOpenInfo }: FooterProps) {
   return (
     <footer className="site-footer glass-panel animate-fade-in" id="main-footer">
       <div className="footer-container">
@@ -18,9 +22,9 @@ export default function Footer() {
         <div className="footer-column">
           <h4>Legal & Info</h4>
           <ul className="footer-links">
-            <li><a href="#" id="footer-link-about">About Us</a></li>
-            <li><a href="#" id="footer-link-privacy">Privacy Policy</a></li>
-            <li><a href="#" id="footer-link-terms">Terms of Service</a></li>
+            <li><a href="#" id="footer-link-about" onClick={(e) => { e.preventDefault(); onOpenInfo?.('about'); }}>About Us</a></li>
+            <li><a href="#" id="footer-link-privacy" onClick={(e) => { e.preventDefault(); onOpenInfo?.('privacy'); }}>Privacy Policy</a></li>
+            <li><a href="#" id="footer-link-terms" onClick={(e) => { e.preventDefault(); onOpenInfo?.('terms'); }}>Terms of Service</a></li>
           </ul>
         </div>
 

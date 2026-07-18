@@ -74,6 +74,13 @@ export async function POST(req: NextRequest) {
       name: user.name,
       image: user.image,
       role: user.role,
+      gender: user.gender,
+      city: user.city,
+      hometown: user.hometown,
+      occupation: user.occupation,
+      mobile: user.mobile,
+      dob: user.dob,
+      instagram: user.instagram,
     });
 
     return NextResponse.json({ success: true, user });

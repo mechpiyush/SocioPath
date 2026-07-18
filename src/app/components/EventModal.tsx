@@ -9,6 +9,7 @@ interface Event {
   description: string;
   date: string;
   price: number;
+  femaleDiscount?: number;
   minCapacity: number;
   maxCapacity: number;
   status: string;
@@ -23,6 +24,7 @@ interface EventModalProps {
   onOpenAuth: () => void;
   onInitializeBooking: (eventId: string) => void;
   bookingLoading: boolean;
+  user?: any;
 }
 
 export default function EventModal({
@@ -33,6 +35,7 @@ export default function EventModal({
   onOpenAuth,
   onInitializeBooking,
   bookingLoading,
+  user,
 }: EventModalProps) {
   const [waiverChecked, setWaiverChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -94,6 +97,11 @@ export default function EventModal({
       return;
     }
 
+    if (!user || !user.gender) {
+      setErrorMessage('Please set your gender in your Profile settings before booking.');
+      return;
+    }
+
     onInitializeBooking(event.id);
   };
 
@@ -152,11 +160,28 @@ export default function EventModal({
               <div className="booking-card">
                 <div className="pricing-box">
                   <span className="price-label">Ticket Entry Fee</span>
-                  <div className="price-value">
-                    <IndianRupee size={24} />
-                    <span>{event.price.toLocaleString('en-IN')}</span>
-                    <span className="price-suffix">/guest</span>
-                  </div>
+                  {user && user.gender === 'FEMALE' && (event.femaleDiscount || 0) > 0 ? (
+                    <div className="price-value-container">
+                      <div className="price-value discounted-original">
+                        <IndianRupee size={16} />
+                        <span>{event.price.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="price-value text-emerald">
+                        <IndianRupee size={24} />
+                        <span>{Math.max(0, event.price - (event.femaleDiscount || 0)).toLocaleString('en-IN')}</span>
+                        <span className="price-suffix">/guest (Female Discount applied)</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="price-value">
+                      <IndianRupee size={24} />
+                      <span>{event.price.toLocaleString('en-IN')}</span>
+                      <span className="price-suffix">/guest</span>
+                    </div>
+                  )}
+                  {(!user || user.gender !== 'FEMALE') && (event.femaleDiscount || 0) > 0 && (
+                    <span className="discount-promo-text">♀ Special discount of ₹{event.femaleDiscount} available for women!</span>
+                  )}
                 </div>
 
                 <div className="availability-box">
@@ -408,6 +433,27 @@ export default function EventModal({
           font-weight: 800;
           font-size: 2.25rem;
           font-family: var(--font-display);
+        }
+        .price-value-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+        .discounted-original {
+          text-decoration: line-through;
+          color: var(--fg-tertiary);
+          font-size: 1.1rem !important;
+          font-weight: 500 !important;
+        }
+        .text-emerald {
+          color: var(--accent-emerald) !important;
+        }
+        .discount-promo-text {
+          font-size: 0.75rem;
+          color: var(--accent-rose);
+          font-weight: 600;
+          margin-top: 0.5rem;
+          display: block;
         }
         .price-suffix {
           font-size: 1rem;

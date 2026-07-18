@@ -16,6 +16,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
     }
 
+    // Get user to check gender
+    const user = await prisma.user.findUnique({
+      where: { id: session.id },
+    });
+
+    if (!user || !user.gender) {
+      return NextResponse.json({ error: 'Please update your gender in your profile before booking.' }, { status: 400 });
+    }
+
     // Get event and confirm capacity
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -38,7 +47,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Event has been cancelled.' }, { status: 400 });
     }
 
-    const amountInPaise = Math.round(event.price * 100); // 150000 paise
+    // Enforce 60% male capping
+    if (user.gender === 'MALE') {
+      const maleConfirmedCount = await prisma.booking.count({
+        where: {
+          eventId: event.id,
+          status: 'CONFIRMED',
+          user: { gender: 'MALE' },
+        },
+      });
+
+      if ((maleConfirmedCount + 1) / event.maxCapacity > 0.60) {
+        return NextResponse.json({
+          error: 'Male bookings cap (60% max capacity) reached for this social. Ladies slots are still open!',
+        }, { status: 400 });
+      }
+    }
+
+    // Gender specific pricing (Female discount)
+    let finalPrice = event.price;
+    if (user.gender === 'FEMALE') {
+      finalPrice = Math.max(0, event.price - event.femaleDiscount);
+    }
+    const amountInPaise = Math.round(finalPrice * 100);
     let razorpayOrderId: string;
 
     if (razorpay) {

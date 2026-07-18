@@ -8,6 +8,7 @@ interface Event {
   description: string;
   date: string;
   price: number;
+  femaleDiscount?: number;
   minCapacity: number;
   maxCapacity: number;
   status: string;
@@ -17,9 +18,10 @@ interface Event {
 interface EventCardProps {
   event: Event;
   onClick: () => void;
+  user?: any;
 }
 
-export default function EventCard({ event, onClick }: EventCardProps) {
+export default function EventCard({ event, onClick, user }: EventCardProps) {
   const formattedDate = new Date(event.date).toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
@@ -37,6 +39,11 @@ export default function EventCard({ event, onClick }: EventCardProps) {
   const minProgress = Math.min((spotsFilled / event.minCapacity) * 100, 100);
   const maxProgress = Math.min((spotsFilled / event.maxCapacity) * 100, 100);
 
+  const discount = event.femaleDiscount || 0;
+  const isFemale = user && user.gender === 'FEMALE';
+  const showFemaleDiscount = isFemale && discount > 0;
+  const finalPrice = showFemaleDiscount ? Math.max(0, event.price - discount) : event.price;
+
   return (
     <article
       id={`event-card-${event.id}`}
@@ -44,6 +51,9 @@ export default function EventCard({ event, onClick }: EventCardProps) {
       onClick={onClick}
     >
       <div className="card-badge-container">
+        {discount > 0 && !isSoldOut && (
+          <span className="badge badge-discount-tag">♀ Save ₹{discount.toLocaleString('en-IN')}!</span>
+        )}
         {isSoldOut ? (
           <span className="badge badge-soldout" id={`badge-soldout-${event.id}`}>Sold Out</span>
         ) : isConfirmed ? (
@@ -63,7 +73,14 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           </div>
           <div className="meta-item price-tag">
             <IndianRupee size={16} />
-            <span>{event.price.toLocaleString('en-IN')} per person</span>
+            {showFemaleDiscount ? (
+              <span className="price-text">
+                <span className="original-price">₹{event.price.toLocaleString('en-IN')}</span>{' '}
+                <span className="discounted-price">₹{finalPrice.toLocaleString('en-IN')}</span> per person
+              </span>
+            ) : (
+              <span>{event.price.toLocaleString('en-IN')} per person</span>
+            )}
           </div>
         </div>
 
@@ -247,6 +264,21 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           background: var(--gradient-primary);
           color: #fff;
           border-color: transparent;
+        }
+        .badge-discount-tag {
+          background: rgba(236, 72, 153, 0.2);
+          border: 1px solid rgba(236, 72, 153, 0.4);
+          color: var(--accent-rose);
+          margin-right: 0.5rem;
+        }
+        .original-price {
+          text-decoration: line-through;
+          color: var(--fg-tertiary);
+          font-size: 0.85rem;
+        }
+        .discounted-price {
+          color: var(--accent-emerald);
+          font-weight: 700;
         }
       `}</style>
     </article>
