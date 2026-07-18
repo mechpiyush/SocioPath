@@ -559,7 +559,7 @@ export default function Home() {
         }
         .sessions-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
           gap: 2.5rem;
         }
         .status-box {
@@ -657,6 +657,19 @@ export default function Home() {
           }
           .hero-graphic-wrapper {
             order: -1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .hero-section {
+            display: none !important;
+          }
+          .sessions-section {
+            padding: 2.5rem 1rem 4rem;
+          }
+          .sessions-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
           }
         }
       `}</style>

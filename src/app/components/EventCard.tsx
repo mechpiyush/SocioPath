@@ -280,6 +280,18 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
           color: var(--accent-emerald);
           font-weight: 700;
         }
+        @media (max-width: 480px) {
+          .card-content {
+            padding: 1.75rem 1.25rem 1.25rem;
+          }
+          .card-title {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+          }
+          .capacity-section {
+            padding: 0.75rem 1rem;
+          }
+        }
       `}</style>
     </article>
   );
