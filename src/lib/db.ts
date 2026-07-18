@@ -8,6 +8,10 @@ declare global {
 function buildPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
   const isPostgres = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  if (process.env.NODE_ENV === 'production' && !isPostgres) {
+    throw new Error('DATABASE_URL environment variable is missing or invalid. A PostgreSQL connection string (like Supabase) is required in production.');
+  }
+
   const commonOptions = {
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   };
