@@ -13,7 +13,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
   const [error, setError] = useState('');
   
   // Form State
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -38,6 +38,10 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (rating === 0) {
+      setError('Please select a vibe rating (click on stars).');
+      return;
+    }
     if (!comment.trim()) return;
 
     setSubmitting(true);
@@ -55,7 +59,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
 
       setReviews((prev) => [data.review, ...prev]);
       setComment('');
-      setRating(5);
+      setRating(0);
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (err: any) {
@@ -68,7 +72,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
   // Calculate stats
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : '5.0';
+    : '0.0';
 
   return (
     <section className="reviews-section-container" id="reviews-block">

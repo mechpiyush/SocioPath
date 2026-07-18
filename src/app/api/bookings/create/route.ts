@@ -17,9 +17,28 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user to check gender
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: session.id },
     });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: session.id,
+          email: session.email,
+          name: session.name,
+          image: session.image,
+          role: session.role,
+          gender: session.gender,
+          city: session.city,
+          hometown: session.hometown,
+          occupation: session.occupation,
+          mobile: session.mobile,
+          dob: session.dob,
+          instagram: session.instagram,
+        },
+      });
+    }
 
     if (!user || !user.gender) {
       return NextResponse.json({ error: 'Please update your gender in your profile before booking.' }, { status: 400 });

@@ -16,6 +16,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid gender value.' }, { status: 400 });
     }
 
+    // Auto-provision user in this container if they don't exist yet
+    let user = await prisma.user.findUnique({
+      where: { id: session.id },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: session.id,
+          email: session.email,
+          name: session.name,
+          image: session.image,
+          role: session.role,
+        },
+      });
+    }
+
     // Update in database
     const updatedUser = await prisma.user.update({
       where: { id: session.id },
