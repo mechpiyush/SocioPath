@@ -9,6 +9,7 @@ interface Event {
   date: string;
   price: number;
   femaleDiscount?: number;
+  genderPricingEnabled?: boolean;
   minCapacity: number;
   maxCapacity: number;
   status: string;
@@ -40,8 +41,9 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
   const maxProgress = Math.min((spotsFilled / event.maxCapacity) * 100, 100);
 
   const discount = event.femaleDiscount || 0;
+  const genderPricingEnabled = event.genderPricingEnabled !== false; // default true
   const isFemale = user && user.gender === 'FEMALE';
-  const showFemaleDiscount = isFemale && discount > 0;
+  const showFemaleDiscount = isFemale && discount > 0 && genderPricingEnabled;
   const finalPrice = showFemaleDiscount ? Math.max(0, event.price - discount) : event.price;
 
   return (
@@ -65,7 +67,7 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
 
       <div className="card-content">
         <h3 className="card-title">{event.title}</h3>
-        
+
         <div className="card-meta">
           <div className="meta-item">
             <Calendar size={16} />
@@ -89,9 +91,9 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
         <div className="capacity-section">
           <div className="capacity-labels">
             <span className="capacity-status-text">
-              {isSoldOut 
+              {isSoldOut
                 ? `${spotsFilled}/${event.maxCapacity} spots filled`
-                : !isConfirmed 
+                : !isConfirmed
                   ? `${spotsFilled} spots filled (10 min needed)`
                   : `${spotsFilled}/${event.maxCapacity} spots filled`
               }
@@ -102,7 +104,7 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
           </div>
 
           <div className="progress-bar-track">
-            <div 
+            <div
               className={`progress-bar-fill ${isSoldOut ? 'fill-soldout' : isConfirmed ? 'fill-confirmed' : 'fill-pending'}`}
               style={{ width: `${isConfirmed ? maxProgress : minProgress}%` }}
             ></div>
@@ -119,8 +121,8 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
             </p>
           )}
         </div>
-        
-        <button 
+
+        <button
           id={`view-details-btn-${event.id}`}
           className="btn-secondary card-action"
           type="button"

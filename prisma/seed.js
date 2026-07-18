@@ -3,17 +3,17 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
-  
+
   // Clean existing data
   await prisma.booking.deleteMany();
   await prisma.event.deleteMany();
-  
+
   // Find upcoming Friday and Saturday
   const now = new Date();
   const nextFriday = new Date();
   nextFriday.setDate(now.getDate() + ((5 - now.getDay() + 7) % 7));
   nextFriday.setHours(20, 0, 0, 0); // 8 PM
-  
+
   const nextSaturday = new Date(nextFriday);
   nextSaturday.setDate(nextFriday.getDate() + 1);
   nextSaturday.setHours(20, 0, 0, 0); // 8 PM
@@ -45,7 +45,7 @@ async function main() {
     });
     console.log(`Created event: ${created.title} on ${created.date}`);
   }
-  
+
   console.log('Seeding finished.');
   await prisma.$disconnect();
 }

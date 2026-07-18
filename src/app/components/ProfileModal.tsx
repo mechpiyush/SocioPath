@@ -166,14 +166,14 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
 
           {/* Navigation Tabs */}
           <div className="profile-tabs">
-            <button 
+            <button
               className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
               onClick={() => setActiveTab('bookings')}
             >
               <Ticket size={16} />
               <span>Reservations</span>
             </button>
-            <button 
+            <button
               className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveTab('profile')}
             >
@@ -218,7 +218,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
                       hour: '2-digit',
                       minute: '2-digit',
                     });
-                    
+
                     const isConfirmed = booking.status === 'CONFIRMED';
                     const isPending = booking.status === 'PENDING';
                     const isRefunded = booking.status === 'REFUNDED';
@@ -229,8 +229,8 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
                     const canCancel = isConfirmed && now <= threeDaysPrior;
 
                     return (
-                      <div 
-                        key={booking.id} 
+                      <div
+                        key={booking.id}
                         className={`booking-item-card ${isConfirmed ? 'border-confirmed' : isRefunded ? 'border-refunded' : 'border-pending'}`}
                       >
                         <div className="booking-info-left">

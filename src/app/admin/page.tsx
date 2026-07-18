@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [date, setDate] = useState('');
   const [price, setPrice] = useState('1500');
   const [femaleDiscount, setFemaleDiscount] = useState('300');
+  const [genderPricingEnabled, setGenderPricingEnabled] = useState(true);
   const [minCapacity, setMinCapacity] = useState('10');
   const [maxCapacity, setMaxCapacity] = useState('20');
   const [formSuccess, setFormSuccess] = useState('');
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
           date,
           price: parseFloat(price),
           femaleDiscount: parseFloat(femaleDiscount),
+          genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
         }),
@@ -100,6 +102,7 @@ export default function AdminDashboard() {
       setDate('');
       setPrice('1500');
       setFemaleDiscount('300');
+      setGenderPricingEnabled(true);
       setMinCapacity('10');
       setMaxCapacity('20');
       
@@ -125,6 +128,7 @@ export default function AdminDashboard() {
     setDate(localISOTime);
     setPrice(event.price.toString());
     setFemaleDiscount(event.femaleDiscount.toString());
+    setGenderPricingEnabled(event.genderPricingEnabled !== false);
     setMinCapacity(event.minCapacity.toString());
     setMaxCapacity(event.maxCapacity.toString());
     setActiveTab('create');
@@ -149,6 +153,7 @@ export default function AdminDashboard() {
           date,
           price: parseFloat(price),
           femaleDiscount: parseFloat(femaleDiscount),
+          genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
         }),
@@ -167,6 +172,7 @@ export default function AdminDashboard() {
       setDate('');
       setPrice('1500');
       setFemaleDiscount('300');
+      setGenderPricingEnabled(true);
       setMinCapacity('10');
       setMaxCapacity('20');
       
@@ -566,8 +572,24 @@ export default function AdminDashboard() {
                   placeholder="300"
                   value={femaleDiscount}
                   onChange={(e) => setFemaleDiscount(e.target.value)}
+                  disabled={!genderPricingEnabled}
                   required
                 />
+              </div>
+
+              <div className="form-field toggle-field">
+                <label>Gender-Based Pricing</label>
+                <button
+                  type="button"
+                  className={`toggle-btn ${genderPricingEnabled ? 'active' : ''}`}
+                  onClick={() => setGenderPricingEnabled(!genderPricingEnabled)}
+                  id="toggle-gender-pricing"
+                >
+                  <span className="toggle-knob" />
+                </button>
+                <span className="toggle-label-hint">
+                  {genderPricingEnabled ? '✓ Female discount enabled' : '✗ Same price for all genders'}
+                </span>
               </div>
 
               <div className="form-field">
@@ -935,7 +957,7 @@ export default function AdminDashboard() {
           color: var(--fg-primary);
         }
         .admin-form input, .admin-form textarea {
-          background: rgba(255, 255, 255, 0.02);
+          background: #0f1423;
           border: 1px solid var(--border-color);
           border-radius: 10px;
           padding: 0.75rem;
@@ -943,6 +965,11 @@ export default function AdminDashboard() {
           font-size: 0.95rem;
           outline: none;
           font-family: inherit;
+          color-scheme: dark;
+        }
+        .admin-form input:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
         .admin-form input:focus, .admin-form textarea:focus {
           border-color: var(--accent-indigo);
@@ -973,6 +1000,44 @@ export default function AdminDashboard() {
         .dashboard-error {
           margin-top: 0;
           text-align: left;
+        }
+        .toggle-field {
+          flex-direction: row !important;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+        .toggle-btn {
+          width: 52px;
+          height: 28px;
+          border-radius: 9999px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid var(--border-color);
+          cursor: pointer;
+          position: relative;
+          flex-shrink: 0;
+          transition: background 0.2s;
+        }
+        .toggle-btn.active {
+          background: var(--accent-indigo);
+          border-color: var(--accent-indigo);
+        }
+        .toggle-knob {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #fff;
+          transition: transform 0.2s;
+        }
+        .toggle-btn.active .toggle-knob {
+          transform: translateX(24px);
+        }
+        .toggle-label-hint {
+          font-size: 0.8rem;
+          color: var(--fg-secondary);
         }
       `}</style>
     </main>

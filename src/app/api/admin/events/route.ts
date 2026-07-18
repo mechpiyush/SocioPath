@@ -55,23 +55,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { title, description, date, price, femaleDiscount, minCapacity, maxCapacity } = await req.json();
+    const { title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity } = await req.json();
 
     if (!title || !description || !date || price === undefined) {
       return NextResponse.json({ error: 'Missing required event fields.' }, { status: 400 });
     }
 
+    const eventData: any = {
+      title,
+      description,
+      date: new Date(date),
+      price: parseFloat(price),
+      femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : 0,
+      genderPricingEnabled: genderPricingEnabled !== undefined ? Boolean(genderPricingEnabled) : true,
+      minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : 10,
+      maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : 20,
+      status: 'PENDING',
+    };
+
     const event = await prisma.event.create({
-      data: {
-        title,
-        description,
-        date: new Date(date),
-        price: parseFloat(price),
-        femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : 0,
-        minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : 10,
-        maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : 20,
-        status: 'PENDING',
-      },
+      data: eventData,
     });
 
     memoryCache.delete(EVENTS_CACHE_KEY);
@@ -91,24 +94,27 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { id, title, description, date, price, femaleDiscount, minCapacity, maxCapacity, status } = await req.json();
+    const { id, title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, status } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
     }
 
+    const updateData: any = {
+      title: title || undefined,
+      description: description || undefined,
+      date: date ? new Date(date) : undefined,
+      price: price !== undefined ? parseFloat(price) : undefined,
+      femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : undefined,
+      genderPricingEnabled: genderPricingEnabled !== undefined ? Boolean(genderPricingEnabled) : undefined,
+      minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : undefined,
+      maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : undefined,
+      status: status || undefined,
+    };
+
     const updatedEvent = await prisma.event.update({
       where: { id },
-      data: {
-        title: title || undefined,
-        description: description || undefined,
-        date: date ? new Date(date) : undefined,
-        price: price !== undefined ? parseFloat(price) : undefined,
-        femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : undefined,
-        minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : undefined,
-        maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : undefined,
-        status: status || undefined,
-      },
+      data: updateData,
     });
 
     memoryCache.delete(EVENTS_CACHE_KEY);

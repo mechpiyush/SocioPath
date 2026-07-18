@@ -10,6 +10,7 @@ import ProfileModal from '@/app/components/ProfileModal';
 import BookingSuccess from '@/app/components/BookingSuccess';
 import ReviewsSection from '@/app/components/ReviewsSection';
 import InfoModal from '@/app/components/InfoModal';
+import OnboardingModal from '@/app/components/OnboardingModal';
 import { ShieldCheck, Music, Sparkles } from 'lucide-react';
 
 interface Event {
@@ -36,6 +37,7 @@ export default function Home() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [lastBooking, setLastBooking] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Site Loading screen states
   const [siteLoading, setSiteLoading] = useState(true);
@@ -112,6 +114,10 @@ export default function Home() {
 
   const handleAuthSuccess = (authenticatedUser: any) => {
     setUser(authenticatedUser);
+    // Show onboarding if gender not set
+    if (!authenticatedUser.gender) {
+      setShowOnboarding(true);
+    }
   };
 
   const handleInitializeBooking = async (eventId: string) => {
@@ -424,6 +430,15 @@ export default function Home() {
         onSuccessMessage={(msg) => {
           setToastMessage(msg);
           setTimeout(() => setToastMessage(''), 2000);
+        }}
+      />
+
+      <OnboardingModal
+        isOpen={showOnboarding}
+        user={user}
+        onComplete={(updatedUser) => {
+          setUser(updatedUser);
+          setShowOnboarding(false);
         }}
       />
 

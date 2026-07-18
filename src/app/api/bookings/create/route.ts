@@ -83,9 +83,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Gender specific pricing (Female discount)
+    // Gender specific pricing (Female discount only when genderPricingEnabled)
     let finalPrice = event.price;
-    if (user.gender === 'FEMALE') {
+    const eventAny = event as any;
+    if (user.gender === 'FEMALE' && eventAny.genderPricingEnabled !== false) {
       finalPrice = Math.max(0, event.price - event.femaleDiscount);
     }
     const amountInPaise = Math.round(finalPrice * 100);
