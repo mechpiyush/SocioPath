@@ -26,6 +26,7 @@ interface Event {
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState<string>('');
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeModal, setActiveModal] = useState<'details' | 'auth' | 'profile' | 'success' | null>(null);
@@ -420,7 +421,17 @@ export default function Home() {
         user={user}
         onSignOut={handleSignOut}
         onUserUpdate={setUser}
+        onSuccessMessage={(msg) => {
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(''), 2000);
+        }}
       />
+
+      {toastMessage && (
+        <div className="toast-container animate-fade-in" id="profile-toast-alert">
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {activeModal === 'success' && (
         <BookingSuccess
@@ -656,13 +667,43 @@ export default function Home() {
             justify-content: center;
           }
           .hero-graphic-wrapper {
-            order: -1;
+            order: 1;
           }
         }
 
+        .toast-container {
+          position: fixed;
+          bottom: 2rem;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(16, 185, 129, 0.95);
+          color: #fff;
+          padding: 0.75rem 1.5rem;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+          z-index: 9999;
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         @media (max-width: 768px) {
+          .hero-graphic-wrapper {
+            display: flex !important;
+            order: 1;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+          }
           .hero-section {
-            display: none !important;
+            padding: 3rem 1rem 1.5rem;
+            text-align: center;
+          }
+          .hero-content h1 {
+            font-size: 2.25rem;
+          }
+          .hero-content p {
+            font-size: 1rem;
           }
           .sessions-section {
             padding: 2.5rem 1rem 4rem;

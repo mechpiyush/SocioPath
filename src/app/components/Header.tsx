@@ -205,6 +205,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
           box-shadow: var(--shadow-lg), 0 0 30px -5px rgba(99, 102, 241, 0.15);
           border: 1px solid rgba(255, 255, 255, 0.08);
           z-index: 200;
+          background: rgba(11, 15, 25, 0.98) !important;
         }
         .dropdown-user-info {
           padding: 0.5rem 0.75rem;

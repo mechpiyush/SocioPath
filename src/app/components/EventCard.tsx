@@ -146,9 +146,9 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
           z-index: 10;
         }
         .badge {
-          padding: 0.35rem 0.75rem;
+          padding: 0.25rem 0.6rem;
           border-radius: 9999px;
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           font-weight: 700;
           letter-spacing: 0.05em;
           text-transform: uppercase;
@@ -169,7 +169,7 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
           color: var(--accent-amber);
         }
         .card-content {
-          padding: 2.25rem 2rem 2rem;
+          padding: 3rem 2rem 2rem;
           display: flex;
           flex-direction: column;
           flex-grow: 1;
@@ -178,7 +178,7 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
           font-size: 1.4rem;
           line-height: 1.3;
           margin-bottom: 1rem;
-          margin-top: 0.5rem;
+          margin-top: 0;
           color: #fff;
           background: linear-gradient(135deg, #fff 60%, var(--fg-secondary) 100%);
           -webkit-background-clip: text;
@@ -282,11 +282,11 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
         }
         @media (max-width: 480px) {
           .card-content {
-            padding: 1.75rem 1.25rem 1.25rem;
+            padding: 2.8rem 1.25rem 1.25rem;
           }
           .card-title {
             font-size: 1.2rem;
-            margin-top: 1rem;
+            margin-top: 0;
           }
           .capacity-section {
             padding: 0.75rem 1rem;

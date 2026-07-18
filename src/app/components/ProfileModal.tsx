@@ -9,9 +9,10 @@ interface ProfileModalProps {
   user: any;
   onSignOut: () => void;
   onUserUpdate?: (updatedUser: any) => void;
+  onSuccessMessage?: (msg: string) => void;
 }
 
-export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserUpdate }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserUpdate, onSuccessMessage }: ProfileModalProps) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,8 +67,20 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
     }
   };
 
+  const hasChanges = user ? (
+    name !== (user.name || '') ||
+    gender !== (user.gender || '') ||
+    city !== (user.city || '') ||
+    hometown !== (user.hometown || '') ||
+    occupation !== (user.occupation || '') ||
+    mobile !== (user.mobile || '') ||
+    dob !== (user.dob || '') ||
+    instagram !== (user.instagram || '')
+  ) : false;
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasChanges) return;
     setSaving(true);
     setError('');
     setSaveSuccess(false);
@@ -80,8 +93,8 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
       onUserUpdate?.(data.user);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      onSuccessMessage?.('Profile changes saved!');
+      onClose();
     } catch (err: any) {
       setError(err.message || 'Error saving profile details.');
     } finally {
@@ -383,7 +396,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
               <button
                 type="submit"
                 className="btn-primary save-profile-btn"
-                disabled={saving}
+                disabled={saving || !hasChanges}
               >
                 <Save size={16} />
                 <span>{saving ? 'Saving...' : 'Save Profile'}</span>
@@ -417,7 +430,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           border: 1px solid rgba(255, 255, 255, 0.08);
           max-height: 85vh;
           overflow-y: auto;
-          background: rgba(11, 15, 25, 0.98);
+          background: #0b0f19;
         }
         .close-btn {
           position: absolute;
@@ -708,6 +721,10 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           border-color: var(--accent-indigo);
           box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
         }
+        .profile-form-group select option {
+          background: #0f1423;
+          color: #fff;
+        }
         .insta-input-wrapper {
           display: flex;
           align-items: center;
@@ -737,13 +754,57 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           font-size: 0.9rem;
           margin-top: 1rem;
         }
+        .save-profile-btn:disabled {
+          background: var(--bg-tertiary) !important;
+          color: var(--fg-tertiary) !important;
+          opacity: 0.5;
+          cursor: not-allowed;
+          box-shadow: none !important;
+          border-color: transparent !important;
+          transform: none !important;
+        }
 
         @media (max-width: 576px) {
-          .form-row-grid {
-            grid-template-columns: 1fr;
+          .profile-backdrop {
+            padding: 0.75rem;
+          }
+          .profile-card {
+            max-height: 92vh;
           }
           .profile-body {
-            padding: 2rem 1.5rem;
+            padding: 2rem 1.25rem;
+          }
+          .form-row-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .user-profile-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1rem;
+          }
+          .user-details {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .signout-action-btn {
+            width: 100%;
+            justify-content: center;
+          }
+          .profile-tabs {
+            gap: 0.5rem;
+          }
+          .tab-btn {
+            flex: 1;
+            justify-content: center;
+            padding: 0.5rem 0.25rem;
+            font-size: 0.85rem;
+          }
+          .save-profile-btn {
+            width: 100%;
+            justify-content: center;
           }
         }
       `}</style>
