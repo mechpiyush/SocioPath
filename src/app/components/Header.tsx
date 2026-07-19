@@ -57,7 +57,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
               </button>
 
               {dropdownOpen && (
-                <div className="dropdown-menu glass-panel animate-scale-up" id="header-avatar-dropdown">
+                <div className="dropdown-menu animate-scale-up" id="header-avatar-dropdown">
                   <div className="dropdown-user-info">
                     <p className="dropdown-user-name">{user.name || 'SocioPath Member'}</p>
                     <p className="dropdown-user-email">{user.email}</p>

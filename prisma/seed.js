@@ -9,12 +9,11 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const { PrismaClient } = require('@prisma/client');
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
-const db = new Database('dev.db');
-const adapter = new PrismaBetterSqlite3(db);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
@@ -210,16 +209,30 @@ async function main() {
 
     prisma.event.create({
       data: {
-        id: 'evt-bhajan-sun',
-        title: 'Bhajan Jamming — Sunday Soul Gathering',
-        description:
-          'End your weekend on a high note with an afternoon bhajan circle. Brought to you by the SocioPath community, this Sunday soul gathering blends traditional bhajan singing with modern acoustic instruments in a cozy villa setting. Sattvic snacks and herbal tea served. All are welcome — no singing experience required.',
-        date: lastSunday,
-        price: 800,
+        id: 'evt-founders-night',
+        title: 'Tech Founders Night — Connect & Build',
+        description: 'An exclusive networking event for tech founders and builders. Share ideas, pitch products, and find your next co-founder or early investor in a relaxed, music-filled villa setting. Premium networking with curated attendees.',
+        date: getNextWeekday(4, 20), // Thursday 8 PM
+        price: 2500,
+        femaleDiscount: 500,
+        genderPricingEnabled: true,
+        minCapacity: 15,
+        maxCapacity: 30,
+        status: 'PENDING',
+      },
+    }),
+    
+    prisma.event.create({
+      data: {
+        id: 'evt-board-games',
+        title: 'Board Game Extravaganza',
+        description: 'A massive 6-hour board game marathon. We provide the games (Catan, Ticket to Ride, Secret Hitler, and more), the food, and the drinks. You bring the competitive spirit! Great way to make friends.',
+        date: getNextWeekday(0, 14), // Sunday 2 PM
+        price: 1200,
         femaleDiscount: 0,
         genderPricingEnabled: false,
-        minCapacity: 8,
-        maxCapacity: 15,
+        minCapacity: 10,
+        maxCapacity: 25,
         status: 'PENDING',
       },
     }),
@@ -270,6 +283,22 @@ async function main() {
         rating: 5,
         comment: 'I\'ve been to 3 SocioPath events now and every single one has exceeded expectations. The curation, the crowd quality, the venue — all world-class. This is the hidden gem of Mumbai nightlife.',
         createdAt: daysAgo(1),
+      },
+    }),
+    prisma.review.create({
+      data: {
+        userId: admin.id,
+        rating: 5,
+        comment: 'The energy at the last Board Game night was chaotic in the best way possible. So many laughs.',
+        createdAt: daysAgo(2),
+      },
+    }),
+    prisma.review.create({
+      data: {
+        userId: user4.id,
+        rating: 4,
+        comment: 'Founders night was incredibly productive. Met two potential angel investors and had a blast doing it.',
+        createdAt: daysAgo(7),
       },
     }),
   ]);

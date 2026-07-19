@@ -129,7 +129,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
     <div id="profile-modal-backdrop" className="profile-backdrop" onClick={(e) => {
       if (e.target === e.currentTarget) onClose();
     }}>
-      <div className="profile-card glass-panel animate-scale-up" role="dialog" aria-modal="true">
+      <div className="profile-card animate-scale-up" role="dialog" aria-modal="true">
         <button id="profile-modal-close" className="close-btn" onClick={onClose} aria-label="Close profile">
           <X size={20} />
         </button>
@@ -798,9 +798,9 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           }
           .tab-btn {
             flex: 1;
-            justify-content: center;
             padding: 0.5rem 0.25rem;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            justify-content: center;
           }
           .save-profile-btn {
             width: 100%;
