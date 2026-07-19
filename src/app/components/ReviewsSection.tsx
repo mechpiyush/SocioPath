@@ -459,6 +459,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
           overflow: hidden;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid var(--border-color);
+          flex-shrink: 0;
         }
         .reviewer-avatar img {
           width: 100%;

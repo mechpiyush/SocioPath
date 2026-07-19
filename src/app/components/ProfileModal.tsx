@@ -806,6 +806,17 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
             width: 100%;
             justify-content: center;
           }
+          .booking-item-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+          .booking-info-right {
+            width: 100%;
+          }
+          .status-container {
+            align-items: flex-start;
+          }
         }
       `}</style>
     </div>

@@ -1039,6 +1039,34 @@ export default function AdminDashboard() {
           font-size: 0.8rem;
           color: var(--fg-secondary);
         }
+        @media (max-width: 768px) {
+          .admin-dashboard-container {
+            padding: 0 1rem;
+            margin: 2rem auto;
+          }
+          .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .header-right {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .dash-tab-btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+          }
+          .events-management-table, .create-event-section, .bookings-log-section {
+            padding: 1.5rem;
+          }
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+          .events-table-wrapper, .bookings-table-wrapper {
+            margin: 0 -1.5rem;
+            padding: 0 1.5rem;
+          }
+        }
       `}</style>
     </main>
   );
