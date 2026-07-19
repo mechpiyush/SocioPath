@@ -17,6 +17,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -73,6 +74,12 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
     : '0.0';
+
+  const sortedReviews = [...reviews].sort((a, b) => {
+    if (b.rating !== a.rating) return b.rating - a.rating;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  const displayedReviews = showAllReviews ? sortedReviews : sortedReviews.slice(0, 2);
 
   return (
     <section className="reviews-section-container" id="reviews-block">
@@ -188,7 +195,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
             </div>
           ) : (
             <div className="reviews-scroll-container">
-              {reviews.map((review) => {
+              {displayedReviews.map((review) => {
                 const reviewDate = new Date(review.createdAt).toLocaleDateString('en-IN', {
                   day: 'numeric',
                   month: 'short',
@@ -230,6 +237,14 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
                   </div>
                 );
               })}
+              {reviews.length > 2 && (
+                <button 
+                  className="view-all-reviews-btn"
+                  onClick={() => setShowAllReviews(!showAllReviews)}
+                >
+                  {showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -498,6 +513,23 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
           margin: 0;
         }
         
+        .view-all-reviews-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border-color);
+          color: var(--fg-primary);
+          padding: 0.75rem;
+          border-radius: 12px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 0.5rem;
+        }
+        .view-all-reviews-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+        
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.8; transform: scale(1.05); }
@@ -507,6 +539,14 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
           .reviews-grid-layout {
             grid-template-columns: 1fr;
             gap: 2.5rem;
+          }
+        }
+        
+        @media (max-width: 576px) {
+          .review-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
           }
         }
       `}</style>
