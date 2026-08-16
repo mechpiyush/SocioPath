@@ -22,7 +22,7 @@ interface EventModalProps {
   onClose: () => void;
   isAuthenticated: boolean;
   onOpenAuth: () => void;
-  onInitializeBooking: (eventId: string) => void;
+  onInitializeBooking: (eventId: string, quantity?: number) => void;
   bookingLoading: boolean;
   user?: any;
 }
@@ -39,11 +39,13 @@ export default function EventModal({
 }: EventModalProps) {
   const [waiverChecked, setWaiverChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (isOpen) {
       setWaiverChecked(false);
       setErrorMessage('');
+      setQuantity(1);
     }
   }, [isOpen]);
 
@@ -65,6 +67,10 @@ export default function EventModal({
   const isCancelled = event.status === 'CANCELLED';
 
   const progressPercentage = Math.min((spotsFilled / event.maxCapacity) * 100, 100);
+  const maxPerPerson = Math.max(0, Math.min(5, event.maxCapacity - spotsFilled));
+  const finalPrice = user && user.gender === 'FEMALE' && (event.femaleDiscount || 0) > 0
+    ? Math.max(0, event.price - (event.femaleDiscount || 0))
+    : event.price;
 
   // Inclusions checklist based on event title
   const isFriday = event.title.toLowerCase().includes('friday');
@@ -102,7 +108,7 @@ export default function EventModal({
       return;
     }
 
-    onInitializeBooking(event.id);
+    onInitializeBooking(event.id, quantity);
   };
 
   return (
@@ -212,6 +218,36 @@ export default function EventModal({
                   <div className="cancelled-banner">
                     <AlertTriangle size={18} />
                     <span>This event has been cancelled and refunded.</span>
+                  </div>
+                )}
+
+                {!isCancelled && !isSoldOut && maxPerPerson > 0 && (
+                  <div className="quantity-selector">
+                    <label>Number of Tickets</label>
+                    <div className="stepper">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        −
+                      </button>
+                      <span>{quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.min(maxPerPerson, q + 1))}
+                        disabled={quantity >= maxPerPerson}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <span className="quantity-note">Max {maxPerPerson} per booking</span>
+                    <div className="price-total">
+                      Total: <IndianRupee size={16} />{(finalPrice * quantity).toLocaleString('en-IN')}
+                      {quantity > 1 && (
+                        <span className="per-ticket"> (₹{finalPrice.toLocaleString('en-IN')}/ticket)</span>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -510,6 +546,72 @@ export default function EventModal({
           align-items: center;
           gap: 0.5rem;
           font-size: 0.85rem;
+        }
+        .quantity-selector {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+          padding-bottom: 0.5rem;
+        }
+        .quantity-selector label {
+          font-size: 0.85rem;
+          color: var(--fg-tertiary);
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .stepper {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .stepper button {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+          font-size: 1.1rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .stepper button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .stepper button:not(:disabled):hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .stepper span {
+          min-width: 24px;
+          text-align: center;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #fff;
+        }
+        .quantity-note {
+          font-size: 0.75rem;
+          color: var(--fg-tertiary);
+        }
+        .price-total {
+          display: flex;
+          align-items: center;
+          gap: 0.15rem;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--accent-cyan);
+          margin-top: 0.25rem;
+        }
+        .price-total .per-ticket {
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: var(--fg-secondary);
+          margin-left: 0.25rem;
         }
         .payment-cta-section {
           display: flex;

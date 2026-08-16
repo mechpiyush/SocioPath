@@ -11,9 +11,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Please sign in.' }, { status: 401 });
     }
 
-    const { eventId } = await req.json();
+    const { eventId, quantity = 1 } = await req.json();
     if (!eventId) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 5) {
+      return NextResponse.json({ error: 'Quantity must be between 1 and 5.' }, { status: 400 });
     }
 
     // Get user to check gender
@@ -58,8 +62,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
     }
 
-    if (event.bookings.length >= event.maxCapacity) {
+    const confirmedSpots = event.bookings.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
+
+    if (confirmedSpots >= event.maxCapacity) {
       return NextResponse.json({ error: 'Event is sold out.' }, { status: 400 });
+    }
+
+    if (confirmedSpots + quantity > event.maxCapacity) {
+      return NextResponse.json({
+        error: `Only ${event.maxCapacity - confirmedSpots} spots remaining. Reduce your ticket count.`,
+      }, { status: 400 });
     }
 
     if (event.status === 'CANCELLED') {
@@ -68,17 +80,19 @@ export async function POST(req: NextRequest) {
 
     // Enforce 60% male capping
     if (user.gender === 'MALE') {
-      const maleConfirmedCount = await prisma.booking.count({
+      const maleConfirmedBookings = await prisma.booking.findMany({
         where: {
           eventId: event.id,
           status: 'CONFIRMED',
           user: { gender: 'MALE' },
         },
+        select: { quantity: true },
       });
+      const maleConfirmedCount = maleConfirmedBookings.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
 
-      if ((maleConfirmedCount + 1) / event.maxCapacity > 0.60) {
+      if ((maleConfirmedCount + quantity) / event.maxCapacity > 0.60) {
         return NextResponse.json({
-          error: 'Male bookings cap (60% max capacity) reached for this social. Ladies slots are still open!',
+          error: 'Male bookings cap (60% max capacity) reached for this social. Reduce quantity or check back later — ladies slots are still open!',
         }, { status: 400 });
       }
     }
@@ -89,7 +103,11 @@ export async function POST(req: NextRequest) {
     if (user.gender === 'FEMALE' && eventAny.genderPricingEnabled !== false) {
       finalPrice = Math.max(0, event.price - event.femaleDiscount);
     }
-    const amountInPaise = Math.round(finalPrice * 100);
+    const pricePerTicket = finalPrice;
+    const subtotal = pricePerTicket * quantity;
+    const taxes = Math.round(subtotal * 0.18 * 100) / 100;
+    const finalAmount = subtotal + taxes;
+    const amountInPaise = Math.round(finalAmount * 100);
     let razorpayOrderId: string;
 
     if (razorpay) {
@@ -117,6 +135,10 @@ export async function POST(req: NextRequest) {
         eventId: event.id,
         razorpayOrderId,
         status: 'PENDING',
+        quantity,
+        pricePaid: pricePerTicket,
+        taxes,
+        finalAmount,
       }
     });
 
@@ -125,6 +147,10 @@ export async function POST(req: NextRequest) {
       bookingId: booking.id,
       razorpayOrderId,
       amount: amountInPaise,
+      quantity,
+      pricePerTicket,
+      taxes,
+      totalAmount: finalAmount,
       keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key_id',
       isMock: !razorpay,
       eventTitle: event.title,

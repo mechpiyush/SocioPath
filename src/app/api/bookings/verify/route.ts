@@ -49,15 +49,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Double check capacity under transactional isolation
-    const confirmedCount = await prisma.booking.count({
+    const confirmedBookings = await prisma.booking.findMany({
       where: {
         eventId: booking.eventId,
         status: 'CONFIRMED',
       },
+      select: { quantity: true },
     });
+    const confirmedSpots = confirmedBookings.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
 
-    if (confirmedCount >= booking.event.maxCapacity) {
-      return NextResponse.json({ error: 'Session is already sold out.' }, { status: 400 });
+    if (confirmedSpots + booking.quantity > booking.event.maxCapacity) {
+      return NextResponse.json({ error: 'Session is now sold out.' }, { status: 400 });
     }
 
     // Confirm booking and update event status if threshold met
@@ -71,14 +73,16 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const count = await tx.booking.count({
+      const confirmed = await tx.booking.findMany({
         where: {
           eventId: booking.eventId,
           status: 'CONFIRMED',
         },
+        select: { quantity: true },
       });
+      const count = confirmed.reduce((sum: number, cb: any) => sum + (cb.quantity || 1), 0);
 
-      // If count hits the minimum (10) and event is still PENDING, flip it to CONFIRMED
+      // If count hits the minimum and event is still PENDING, flip it to CONFIRMED
       if (count >= booking.event.minCapacity && booking.event.status === 'PENDING') {
         await tx.event.update({
           where: { id: booking.eventId },
@@ -96,7 +100,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       bookingId: updatedBooking.id,
-      spotsFilled: confirmedCount + 1,
+      quantity: booking.quantity,
+      spotsFilled: confirmedSpots + booking.quantity,
     });
   } catch (error) {
     console.error('Booking verification error:', error);

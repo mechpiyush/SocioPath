@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     // Set the secure session cookie
     await setSession({
       id: user.id,
-      email: user.email,
+      email: user.email || '',
       name: user.name,
       image: user.image,
       role: user.role,

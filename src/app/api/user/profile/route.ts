@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // Update session
     await setSession({
       id: updatedUser.id,
-      email: updatedUser.email,
+      email: updatedUser.email || '',
       name: updatedUser.name,
       image: updatedUser.image,
       role: updatedUser.role,

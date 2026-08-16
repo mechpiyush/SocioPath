@@ -120,13 +120,13 @@ export default function Home() {
     }
   };
 
-  const handleInitializeBooking = async (eventId: string) => {
+  const handleInitializeBooking = async (eventId: string, quantity: number = 1) => {
     setBookingLoading(true);
     try {
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId }),
+        body: JSON.stringify({ eventId, quantity }),
       });
 
       const data = await res.json();
@@ -170,6 +170,7 @@ export default function Home() {
         setLastBooking({
           eventTitle: orderData.eventTitle,
           amount: orderData.amount,
+          quantity: orderData.quantity || 1,
           orderId: orderData.razorpayOrderId,
           date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
         });
@@ -225,6 +226,7 @@ export default function Home() {
           setLastBooking({
             eventTitle: orderData.eventTitle,
             amount: orderData.amount,
+            quantity: orderData.quantity || 1,
             orderId: response.razorpay_order_id,
             date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
           });
