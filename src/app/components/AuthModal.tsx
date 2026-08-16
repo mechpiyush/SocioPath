@@ -29,7 +29,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
   useEffect(() => {
     if (!isOpen || isMockMode || typeof window === 'undefined') return;
 
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const maxAttempts = 25; // ~10s total (25 * 400ms), covers slow lazyOnload script loads
+    let attempts = 0;
+
+    const tryInit = () => {
+      if (cancelled) return;
+
       if ((window as any).google?.accounts?.id) {
         try {
           (window as any).google.accounts.id.initialize({
@@ -54,13 +60,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
           setError('Google Sign-In failed to initialize. Using Mock Mode instead.');
           setIsMockMode(true);
         }
-      } else {
-        // Retry in case script is still loading
-        setError('Google Client SDK not loaded. Try switching to Developer Mock Mode.');
+        return;
       }
-    }, 300);
 
-    return () => clearTimeout(timer);
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        setError('Google Client SDK not loaded. Try switching to Developer Mock Mode.');
+        return;
+      }
+      timer = setTimeout(tryInit, 400);
+    };
+
+    let timer = setTimeout(tryInit, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [isOpen, isMockMode, googleClientId]);
 
   const handleAuthResponse = async (payload: { credential?: string; isMock?: boolean; mockData?: any }) => {
