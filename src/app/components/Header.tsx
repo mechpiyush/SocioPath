@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { User, Shield, ChevronDown, Ticket, LogOut } from 'lucide-react';
 
 interface HeaderProps {
@@ -48,7 +49,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
               >
                 <div className="avatar-image-container">
                   {user.image ? (
-                    <img src={user.image} alt={user.name} className="avatar-img" referrerPolicy="no-referrer" />
+                    <Image src={user.image} alt={user.name} width={32} height={32} className="avatar-img" referrerPolicy="no-referrer" />
                   ) : (
                     <User size={18} />
                   )}

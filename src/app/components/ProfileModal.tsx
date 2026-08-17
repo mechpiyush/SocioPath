@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { X, User, Ticket, LogOut, CheckCircle, Clock, RotateCcw, AlertCircle, IndianRupee, Settings, Save } from 'lucide-react';
 
 interface ProfileModalProps {
@@ -139,7 +140,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           <div className="user-profile-header">
             <div className="avatar-wrapper">
               {user.image ? (
-                <img src={user.image} alt={user.name} className="user-avatar-large" referrerPolicy="no-referrer" />
+                <Image src={user.image} alt={user.name} width={80} height={80} className="user-avatar-large" referrerPolicy="no-referrer" />
               ) : (
                 <div className="avatar-placeholder">
                   <User size={32} />

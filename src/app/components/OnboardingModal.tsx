@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ChevronRight, UserCheck } from 'lucide-react';
 
 interface OnboardingModalProps {
@@ -78,7 +79,7 @@ export default function OnboardingModal({ isOpen, user, onComplete }: Onboarding
         <div className="onboarding-header">
           <div className="welcome-avatar">
             {user.image ? (
-              <img src={user.image} alt={user.name} referrerPolicy="no-referrer" />
+              <Image src={user.image} alt={user.name} width={72} height={72} referrerPolicy="no-referrer" />
             ) : (
               <UserCheck size={28} />
             )}

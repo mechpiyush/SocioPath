@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Calendar, IndianRupee, Users } from 'lucide-react';
 
 interface Event {
@@ -22,7 +23,7 @@ interface EventCardProps {
   user?: any;
 }
 
-export default function EventCard({ event, onClick, user }: EventCardProps) {
+function EventCard({ event, onClick, user }: EventCardProps) {
   const formattedDate = new Date(event.date).toLocaleDateString('en-IN', {
     weekday: 'short',
     day: 'numeric',
@@ -322,3 +323,5 @@ export default function EventCard({ event, onClick, user }: EventCardProps) {
     </article>
   );
 }
+
+export default memo(EventCard);

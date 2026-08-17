@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { memoryCache } from '@/lib/cache';
+import { cacheDel } from '@/lib/redis';
 import { razorpay } from '@/lib/razorpay';
 import crypto from 'crypto';
 
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Invalidate the cache immediately so all users fetch the updated inventory
-    memoryCache.delete(EVENTS_CACHE_KEY);
+    await cacheDel(EVENTS_CACHE_KEY);
     console.log('Booking confirmed, cache invalidated.');
 
     return NextResponse.json({

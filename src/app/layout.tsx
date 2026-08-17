@@ -28,12 +28,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} ${outfit.variable}`}>
+    <html lang="en" className={`${plusJakartaSans.variable} ${outfit.variable}`} suppressHydrationWarning>
       <body>
         {children}
         {/* Scripts for Google OAuth and Razorpay Payments */}
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
-        <script src="https://checkout.razorpay.com/v1/checkout.js" async defer></script>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       </body>
     </html>
   );

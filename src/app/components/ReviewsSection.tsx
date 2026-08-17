@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Star, MessageSquare, PlusCircle, AlertCircle, Sparkles } from 'lucide-react';
 
 interface ReviewsSectionProps {
@@ -208,7 +209,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
                       <div className="reviewer-info">
                         <div className="reviewer-avatar">
                           {review.user?.image ? (
-                            <img src={review.user.image} alt={review.user.name} referrerPolicy="no-referrer" />
+                            <Image src={review.user.image} alt={review.user.name} width={44} height={44} referrerPolicy="no-referrer" />
                           ) : (
                             <div className="avatar-placeholder">{review.user?.name?.charAt(0) || 'S'}</div>
                           )}

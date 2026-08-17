@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Calendar, IndianRupee, MapPin, CheckCircle, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { X, Calendar, IndianRupee, MapPin, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -10,45 +9,28 @@ interface Event {
   date: string;
   price: number;
   femaleDiscount?: number;
+  genderPricingEnabled?: boolean;
   minCapacity: number;
   maxCapacity: number;
   status: string;
   spotsFilled: number;
+  venue?: string;
+  venueMapEmbedUrl?: string;
 }
 
 interface EventModalProps {
   isOpen: boolean;
   event: Event | null;
   onClose: () => void;
-  isAuthenticated: boolean;
-  onOpenAuth: () => void;
-  onInitializeBooking: (eventId: string, quantity?: number) => void;
-  bookingLoading: boolean;
-  user?: any;
+  onProceedToBooking: (eventId: string) => void;
 }
 
 export default function EventModal({
   isOpen,
   event,
   onClose,
-  isAuthenticated,
-  onOpenAuth,
-  onInitializeBooking,
-  bookingLoading,
-  user,
+  onProceedToBooking,
 }: EventModalProps) {
-  const [waiverChecked, setWaiverChecked] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [quantity, setQuantity] = useState(1);
-
-  useEffect(() => {
-    if (isOpen) {
-      setWaiverChecked(false);
-      setErrorMessage('');
-      setQuantity(1);
-    }
-  }, [isOpen]);
-
   if (!isOpen || !event) return null;
 
   const formattedDate = new Date(event.date).toLocaleDateString('en-IN', {
@@ -67,10 +49,7 @@ export default function EventModal({
   const isCancelled = event.status === 'CANCELLED';
 
   const progressPercentage = Math.min((spotsFilled / event.maxCapacity) * 100, 100);
-  const maxPerPerson = Math.max(0, Math.min(5, event.maxCapacity - spotsFilled));
-  const finalPrice = user && user.gender === 'FEMALE' && (event.femaleDiscount || 0) > 0
-    ? Math.max(0, event.price - (event.femaleDiscount || 0))
-    : event.price;
+  const discountEnabled = event.genderPricingEnabled !== false && (event.femaleDiscount || 0) > 0;
 
   // Inclusions checklist based on event title
   const isFriday = event.title.toLowerCase().includes('friday');
@@ -92,25 +71,6 @@ export default function EventModal({
         'BYOD (Bring Your Own Drinks) fully supported',
       ];
 
-  const handleBookingSubmit = () => {
-    if (!waiverChecked) {
-      setErrorMessage('You must read and agree to the Maharashtra legal drinking age compliance waiver.');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      onOpenAuth();
-      return;
-    }
-
-    if (!user || !user.gender) {
-      setErrorMessage('Please set your gender in your Profile settings before booking.');
-      return;
-    }
-
-    onInitializeBooking(event.id, quantity);
-  };
-
   return (
     <div id="event-modal-backdrop" className="modal-backdrop" onClick={(e) => {
       if (e.target === e.currentTarget) onClose();
@@ -127,7 +87,7 @@ export default function EventModal({
               {isSoldOut ? 'Sold Out' : isConfirmed ? 'Confirmed Session' : 'Pending Capacity'}
             </span>
             <h2 id="event-modal-title">{event.title}</h2>
-            
+
             <div className="modal-meta-row">
               <div className="meta-block">
                 <Calendar size={18} />
@@ -135,7 +95,7 @@ export default function EventModal({
               </div>
               <div className="meta-block">
                 <MapPin size={18} />
-                <span>Premium Secluded Villa, Mumbai</span>
+                <span>{event.venue || 'Premium Secluded Villa, Mumbai'}</span>
               </div>
             </div>
           </div>
@@ -166,27 +126,19 @@ export default function EventModal({
               <div className="booking-card">
                 <div className="pricing-box">
                   <span className="price-label">Ticket Entry Fee</span>
-                  {user && user.gender === 'FEMALE' && (event.femaleDiscount || 0) > 0 ? (
-                    <div className="price-value-container">
-                      <div className="price-value discounted-original">
-                        <IndianRupee size={16} />
-                        <span>{event.price.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="price-value text-emerald">
-                        <IndianRupee size={24} />
-                        <span>{Math.max(0, event.price - (event.femaleDiscount || 0)).toLocaleString('en-IN')}</span>
-                        <span className="price-suffix">/guest (Female Discount applied)</span>
-                      </div>
+                  <div className="price-value">
+                    <IndianRupee size={24} />
+                    <span>{event.price.toLocaleString('en-IN')}</span>
+                    <span className="price-suffix">/guest</span>
+                  </div>
+                  {discountEnabled && (
+                    <div className="discount-highlight-banner">
+                      <Sparkles size={16} />
+                      <span>
+                        Women save ₹{(event.femaleDiscount || 0).toLocaleString('en-IN')} — pay just ₹
+                        {Math.max(0, event.price - (event.femaleDiscount || 0)).toLocaleString('en-IN')}/guest
+                      </span>
                     </div>
-                  ) : (
-                    <div className="price-value">
-                      <IndianRupee size={24} />
-                      <span>{event.price.toLocaleString('en-IN')}</span>
-                      <span className="price-suffix">/guest</span>
-                    </div>
-                  )}
-                  {(!user || user.gender !== 'FEMALE') && (event.femaleDiscount || 0) > 0 && (
-                    <span className="discount-promo-text">♀ Special discount of ₹{event.femaleDiscount} available for women!</span>
                   )}
                 </div>
 
@@ -196,8 +148,8 @@ export default function EventModal({
                     <span className="spots-count">{spotsFilled} / {event.maxCapacity} Booked</span>
                   </div>
                   <div className="progress-bar-track">
-                    <div 
-                      className="progress-bar-fill" 
+                    <div
+                      className="progress-bar-fill"
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                   </div>
@@ -221,82 +173,16 @@ export default function EventModal({
                   </div>
                 )}
 
-                {!isCancelled && !isSoldOut && maxPerPerson > 0 && (
-                  <div className="quantity-selector">
-                    <label>Number of Tickets</label>
-                    <div className="stepper">
-                      <button
-                        type="button"
-                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        disabled={quantity <= 1}
-                      >
-                        −
-                      </button>
-                      <span>{quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity((q) => Math.min(maxPerPerson, q + 1))}
-                        disabled={quantity >= maxPerPerson}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span className="quantity-note">Max {maxPerPerson} per booking</span>
-                    <div className="price-total">
-                      Total: <IndianRupee size={16} />{(finalPrice * quantity).toLocaleString('en-IN')}
-                      {quantity > 1 && (
-                        <span className="per-ticket"> (₹{finalPrice.toLocaleString('en-IN')}/ticket)</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {!isCancelled && (
-                  <div className="payment-cta-section">
-                    {/* Legal Compliance Checkbox */}
-                    <div className="legal-waiver-wrapper">
-                      <label className="checkbox-container" htmlFor="byod-waiver-checkbox">
-                        <input
-                          id="byod-waiver-checkbox"
-                          type="checkbox"
-                          checked={waiverChecked}
-                          onChange={(e) => {
-                            setWaiverChecked(e.target.checked);
-                            if (e.target.checked) setErrorMessage('');
-                          }}
-                        />
-                        <span className="checkmark"></span>
-                        <div className="waiver-text">
-                          <span className="waiver-highlight">Maharashtra BYOD Compliance Waiver:</span> I confirm that I am of legal drinking age in Maharashtra (21+ for beer/wine, 25+ for spirits) and accept all local compliance liabilities.
-                        </div>
-                      </label>
-                    </div>
-
-                    {errorMessage && (
-                      <p className="modal-error-msg" id="waiver-error-alert">
-                        <ShieldAlert size={14} />
-                        {errorMessage}
-                      </p>
-                    )}
-
-                    <button
-                      id="modal-checkout-btn"
-                      className="btn-primary checkout-btn"
-                      type="button"
-                      disabled={isSoldOut || bookingLoading}
-                      onClick={handleBookingSubmit}
-                    >
-                      {bookingLoading 
-                        ? 'Initializing...' 
-                        : isSoldOut 
-                          ? 'Sold Out' 
-                          : isAuthenticated 
-                            ? 'Book Ticket Now' 
-                            : 'Sign In & Book Ticket'
-                      }
-                    </button>
-                    <p className="secure-badge">🔒 Secure Payment via Razorpay</p>
-                  </div>
+                  <button
+                    id="modal-proceed-btn"
+                    className="btn-primary checkout-btn"
+                    type="button"
+                    disabled={isSoldOut}
+                    onClick={() => onProceedToBooking(event.id)}
+                  >
+                    {isSoldOut ? 'Sold Out' : 'Proceed to Booking'}
+                  </button>
                 )}
               </div>
             </div>
@@ -470,26 +356,18 @@ export default function EventModal({
           font-size: 2.25rem;
           font-family: var(--font-display);
         }
-        .price-value-container {
+        .discount-highlight-banner {
+          margin-top: 0.85rem;
           display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        .discounted-original {
-          text-decoration: line-through;
-          color: var(--fg-tertiary);
-          font-size: 1.1rem !important;
-          font-weight: 500 !important;
-        }
-        .text-emerald {
-          color: var(--accent-emerald) !important;
-        }
-        .discount-promo-text {
-          font-size: 0.75rem;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(244, 63, 94, 0.1);
+          border: 1px solid rgba(244, 63, 94, 0.25);
           color: var(--accent-rose);
+          font-size: 0.8rem;
           font-weight: 600;
-          margin-top: 0.5rem;
-          display: block;
+          padding: 0.6rem 0.85rem;
+          border-radius: 12px;
         }
         .price-suffix {
           font-size: 1rem;
@@ -547,163 +425,13 @@ export default function EventModal({
           gap: 0.5rem;
           font-size: 0.85rem;
         }
-        .quantity-selector {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 0.5rem;
-          padding-bottom: 0.5rem;
-        }
-        .quantity-selector label {
-          font-size: 0.85rem;
-          color: var(--fg-tertiary);
-          text-transform: uppercase;
-          font-weight: 600;
-          letter-spacing: 0.05em;
-        }
-        .stepper {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-        .stepper button {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: 1px solid var(--border-color);
-          background: rgba(255, 255, 255, 0.05);
-          color: #fff;
-          font-size: 1.1rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-        .stepper button:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .stepper button:not(:disabled):hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-        .stepper span {
-          min-width: 24px;
-          text-align: center;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #fff;
-        }
-        .quantity-note {
-          font-size: 0.75rem;
-          color: var(--fg-tertiary);
-        }
-        .price-total {
-          display: flex;
-          align-items: center;
-          gap: 0.15rem;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: var(--accent-cyan);
-          margin-top: 0.25rem;
-        }
-        .price-total .per-ticket {
-          font-size: 0.75rem;
-          font-weight: 500;
-          color: var(--fg-secondary);
-          margin-left: 0.25rem;
-        }
-        .payment-cta-section {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .legal-waiver-wrapper {
-          background: rgba(255, 255, 255, 0.01);
-          border: 1px solid rgba(255, 255, 255, 0.03);
-          border-radius: 12px;
-          padding: 0.75rem 1rem;
-        }
-        .checkbox-container {
-          display: flex;
-          gap: 0.75rem;
-          cursor: pointer;
-          font-size: 0.8rem;
-          color: var(--fg-secondary);
-          line-height: 1.4;
-          position: relative;
-          user-select: none;
-        }
-        .checkbox-container input {
-          position: absolute;
-          opacity: 0;
-          cursor: pointer;
-          height: 0;
-          width: 0;
-        }
-        .checkmark {
-          width: 18px;
-          height: 18px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
-          flex-shrink: 0;
-          margin-top: 0.1rem;
-          position: relative;
-          transition: all 0.2s;
-        }
-        .checkbox-container:hover input ~ .checkmark {
-          border-color: var(--fg-secondary);
-        }
-        .checkbox-container input:checked ~ .checkmark {
-          background-color: var(--accent-indigo);
-          border-color: var(--accent-indigo);
-        }
-        .checkmark:after {
-          content: "";
-          position: absolute;
-          display: none;
-          left: 5px;
-          top: 2px;
-          width: 5px;
-          height: 9px;
-          border: solid white;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-        }
-        .checkbox-container input:checked ~ .checkmark:after {
-          display: block;
-        }
-        .waiver-highlight {
-          color: #fff;
-          font-weight: 600;
-          display: block;
-          margin-bottom: 0.15rem;
-        }
-        .modal-error-msg {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--accent-rose);
-          font-size: 0.75rem;
-          line-height: 1.4;
-          background: rgba(244, 63, 94, 0.05);
-          padding: 0.5rem 0.75rem;
-          border-radius: 8px;
-          border: 1px solid rgba(244, 63, 94, 0.1);
-        }
         .checkout-btn {
           width: 100%;
           justify-content: center;
           padding: 1rem;
           font-size: 1rem;
         }
-        .secure-badge {
-          font-size: 0.7rem;
-          color: var(--fg-tertiary);
-          text-align: center;
-        }
-        
+
         @media (max-width: 768px) {
           .modal-grid {
             grid-template-columns: 1fr;

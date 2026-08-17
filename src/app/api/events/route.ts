@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { memoryCache } from '@/lib/cache';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { getVenueMapEmbedUrl } from '@/lib/maps';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_SECONDS = 5 * 60; // 5 minutes
 
 export async function GET() {
   try {
-    // Try to get from cache first
-    const cachedEvents = memoryCache.get(EVENTS_CACHE_KEY);
+    const cachedEvents = await cacheGet<any[]>(EVENTS_CACHE_KEY);
     if (cachedEvents) {
-      console.log('Serving events from cache');
       return NextResponse.json({ events: cachedEvents, cached: true });
     }
 
@@ -31,15 +30,16 @@ export async function GET() {
       date: event.date,
       price: event.price,
       femaleDiscount: event.femaleDiscount,
+      genderPricingEnabled: event.genderPricingEnabled,
       minCapacity: event.minCapacity,
       maxCapacity: event.maxCapacity,
       status: event.status,
       spotsFilled: event._count.bookings,
+      venue: event.venue,
+      venueMapEmbedUrl: getVenueMapEmbedUrl(event.venue, event.venueMapUrl),
     }));
 
-    // Cache the result
-    memoryCache.set(EVENTS_CACHE_KEY, mappedEvents, CACHE_TTL_MS);
-    console.log('Caching fresh events query');
+    await cacheSet(EVENTS_CACHE_KEY, mappedEvents, CACHE_TTL_SECONDS);
 
     return NextResponse.json({ events: mappedEvents, cached: false });
   } catch (error) {

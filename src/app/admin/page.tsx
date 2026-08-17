@@ -25,6 +25,8 @@ export default function AdminDashboard() {
   const [genderPricingEnabled, setGenderPricingEnabled] = useState(true);
   const [minCapacity, setMinCapacity] = useState('10');
   const [maxCapacity, setMaxCapacity] = useState('20');
+  const [venue, setVenue] = useState('');
+  const [venueMapUrl, setVenueMapUrl] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
   // Passcode verification
@@ -87,6 +89,8 @@ export default function AdminDashboard() {
           genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
+          venue,
+          venueMapUrl,
         }),
       });
 
@@ -95,7 +99,7 @@ export default function AdminDashboard() {
 
       setFormSuccess('Event created successfully!');
       fetchAdminData();
-      
+
       // Reset form
       setTitle('');
       setDescription('');
@@ -105,6 +109,8 @@ export default function AdminDashboard() {
       setGenderPricingEnabled(true);
       setMinCapacity('10');
       setMaxCapacity('20');
+      setVenue('');
+      setVenueMapUrl('');
       
       setTimeout(() => {
         setFormSuccess('');
@@ -131,6 +137,8 @@ export default function AdminDashboard() {
     setGenderPricingEnabled(event.genderPricingEnabled !== false);
     setMinCapacity(event.minCapacity.toString());
     setMaxCapacity(event.maxCapacity.toString());
+    setVenue(event.venue || '');
+    setVenueMapUrl(event.venueMapUrl || '');
     setActiveTab('create');
   };
 
@@ -156,6 +164,8 @@ export default function AdminDashboard() {
           genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
+          venue,
+          venueMapUrl,
         }),
       });
 
@@ -164,7 +174,7 @@ export default function AdminDashboard() {
 
       setFormSuccess('Event updated successfully!');
       fetchAdminData();
-      
+
       // Reset form
       setEditingEventId(null);
       setTitle('');
@@ -175,6 +185,8 @@ export default function AdminDashboard() {
       setGenderPricingEnabled(true);
       setMinCapacity('10');
       setMaxCapacity('20');
+      setVenue('');
+      setVenueMapUrl('');
       
       setTimeout(() => {
         setFormSuccess('');
@@ -565,6 +577,31 @@ export default function AdminDashboard() {
 
             <div className="form-row">
               <div className="form-field">
+                <label htmlFor="evt-venue">Venue / Address</label>
+                <input
+                  id="evt-venue"
+                  type="text"
+                  placeholder="e.g. Premium Secluded Villa, Bandra, Mumbai"
+                  value={venue}
+                  onChange={(e) => setVenue(e.target.value)}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="evt-venue-map">Google Maps Embed URL (optional)</label>
+                <input
+                  id="evt-venue-map"
+                  type="text"
+                  placeholder="Paste from Google Maps → Share → Embed a map"
+                  value={venueMapUrl}
+                  onChange={(e) => setVenueMapUrl(e.target.value)}
+                />
+                <span className="field-hint">Leave blank to auto-generate from venue text.</span>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-field">
                 <label htmlFor="evt-female-disc">Female Discount Amount (₹)</label>
                 <input
                   id="evt-female-disc"
@@ -627,6 +664,8 @@ export default function AdminDashboard() {
                     setTitle('');
                     setDescription('');
                     setDate('');
+                    setVenue('');
+                    setVenueMapUrl('');
                     setActiveTab('list');
                   }}
                 >
@@ -1038,6 +1077,11 @@ export default function AdminDashboard() {
         .toggle-label-hint {
           font-size: 0.8rem;
           color: var(--fg-secondary);
+        }
+        .field-hint {
+          font-size: 0.75rem;
+          color: var(--fg-tertiary);
+          margin-top: 0.25rem;
         }
         @media (max-width: 768px) {
           .admin-dashboard-container {

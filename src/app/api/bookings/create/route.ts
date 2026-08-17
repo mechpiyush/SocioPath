@@ -11,16 +11,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Please sign in.' }, { status: 401 });
     }
 
-    const { eventId, quantity = 1 } = await req.json();
+    const { eventId, maleQuantity = 0, femaleQuantity = 0 } = await req.json();
     if (!eventId) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
     }
 
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 5) {
-      return NextResponse.json({ error: 'Quantity must be between 1 and 5.' }, { status: 400 });
+    if (!Number.isInteger(maleQuantity) || maleQuantity < 0 || !Number.isInteger(femaleQuantity) || femaleQuantity < 0) {
+      return NextResponse.json({ error: 'Ticket quantities must be non-negative integers.' }, { status: 400 });
     }
 
-    // Get user to check gender
+    const quantity = maleQuantity + femaleQuantity;
+    if (quantity < 1 || quantity > 5) {
+      return NextResponse.json({ error: 'Total tickets must be between 1 and 5.' }, { status: 400 });
+    }
+
+    // Get user (profile must be completed before booking)
     let user = await prisma.user.findUnique({
       where: { id: session.id },
     });
@@ -78,33 +83,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Event has been cancelled.' }, { status: 400 });
     }
 
-    // Enforce 60% male capping
-    if (user.gender === 'MALE') {
-      const maleConfirmedBookings = await prisma.booking.findMany({
-        where: {
-          eventId: event.id,
-          status: 'CONFIRMED',
-          user: { gender: 'MALE' },
-        },
-        select: { quantity: true },
+    // Enforce 60% male capping based on male tickets in THIS order, regardless of buyer's own gender
+    if (maleQuantity > 0) {
+      const confirmedBookings = await prisma.booking.findMany({
+        where: { eventId: event.id, status: 'CONFIRMED' },
+        select: { maleQuantity: true },
       });
-      const maleConfirmedCount = maleConfirmedBookings.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
+      const maleConfirmedCount = confirmedBookings.reduce((sum: number, b: any) => sum + (b.maleQuantity || 0), 0);
 
-      if ((maleConfirmedCount + quantity) / event.maxCapacity > 0.60) {
+      if ((maleConfirmedCount + maleQuantity) / event.maxCapacity > 0.60) {
         return NextResponse.json({
-          error: 'Male bookings cap (60% max capacity) reached for this social. Reduce quantity or check back later — ladies slots are still open!',
+          error: 'Male bookings cap (60% max capacity) reached for this social. Reduce male ticket count or check back later.',
         }, { status: 400 });
       }
     }
 
-    // Gender specific pricing (Female discount only when genderPricingEnabled)
-    let finalPrice = event.price;
+    // Per-ticket gender pricing: female discount applies only to female tickets
     const eventAny = event as any;
-    if (user.gender === 'FEMALE' && eventAny.genderPricingEnabled !== false) {
-      finalPrice = Math.max(0, event.price - event.femaleDiscount);
-    }
-    const pricePerTicket = finalPrice;
-    const subtotal = pricePerTicket * quantity;
+    const femaleUnitPrice = eventAny.genderPricingEnabled !== false
+      ? Math.max(0, event.price - event.femaleDiscount)
+      : event.price;
+    const maleUnitPrice = event.price;
+
+    const subtotal = (maleQuantity * maleUnitPrice) + (femaleQuantity * femaleUnitPrice);
     const taxes = Math.round(subtotal * 0.18 * 100) / 100;
     const finalAmount = subtotal + taxes;
     const amountInPaise = Math.round(finalAmount * 100);
@@ -136,7 +137,9 @@ export async function POST(req: NextRequest) {
         razorpayOrderId,
         status: 'PENDING',
         quantity,
-        pricePaid: pricePerTicket,
+        maleQuantity,
+        femaleQuantity,
+        pricePaid: maleUnitPrice,
         taxes,
         finalAmount,
       }
@@ -148,7 +151,10 @@ export async function POST(req: NextRequest) {
       razorpayOrderId,
       amount: amountInPaise,
       quantity,
-      pricePerTicket,
+      maleQuantity,
+      femaleQuantity,
+      maleUnitPrice,
+      femaleUnitPrice,
       taxes,
       totalAmount: finalAmount,
       keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key_id',

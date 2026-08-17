@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { CheckCircle, Calendar, ArrowRight, IndianRupee, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Calendar, ArrowRight, IndianRupee, ShieldCheck, Users } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface BookingSuccessProps {
@@ -9,6 +9,8 @@ interface BookingSuccessProps {
   bookingDetails: {
     eventTitle: string;
     amount: number;
+    maleQuantity?: number;
+    femaleQuantity?: number;
     orderId: string;
     date: string;
   } | null;
@@ -50,6 +52,10 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
 
   if (!bookingDetails) return null;
 
+  const maleQuantity = bookingDetails.maleQuantity || 0;
+  const femaleQuantity = bookingDetails.femaleQuantity || 0;
+  const totalQuantity = maleQuantity + femaleQuantity;
+
   const eventDate = new Date(bookingDetails.date).toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
@@ -82,6 +88,21 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
                 <span className="info-value">{eventDate}</span>
               </div>
             </div>
+
+            {totalQuantity > 0 && (
+              <div className="ticket-info-row">
+                <Users size={18} className="ticket-icon" />
+                <div>
+                  <span className="info-label">Tickets</span>
+                  <span className="info-value">
+                    {maleQuantity > 0 && `${maleQuantity} Male`}
+                    {maleQuantity > 0 && femaleQuantity > 0 && ' + '}
+                    {femaleQuantity > 0 && `${femaleQuantity} Female`}
+                    {` (${totalQuantity} total)`}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="ticket-info-row">
               <IndianRupee size={18} className="ticket-icon" />

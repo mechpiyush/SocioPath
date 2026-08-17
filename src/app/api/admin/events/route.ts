@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { razorpay } from '@/lib/razorpay';
-import { memoryCache } from '@/lib/cache';
+import { cacheDel } from '@/lib/redis';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity } = await req.json();
+    const { title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, venue, venueMapUrl } = await req.json();
 
     if (!title || !description || !date || price === undefined) {
       return NextResponse.json({ error: 'Missing required event fields.' }, { status: 400 });
@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
       genderPricingEnabled: genderPricingEnabled !== undefined ? Boolean(genderPricingEnabled) : true,
       minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : 10,
       maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : 20,
+      venue: venue || undefined,
+      venueMapUrl: venueMapUrl || undefined,
       status: 'PENDING',
     };
 
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
       data: eventData,
     });
 
-    memoryCache.delete(EVENTS_CACHE_KEY);
+    await cacheDel(EVENTS_CACHE_KEY);
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
@@ -94,7 +96,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { id, title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, status } = await req.json();
+    const { id, title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, status, venue, venueMapUrl } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
@@ -110,6 +112,8 @@ export async function PUT(req: NextRequest) {
       minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : undefined,
       maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : undefined,
       status: status || undefined,
+      venue: venue !== undefined ? (venue || null) : undefined,
+      venueMapUrl: venueMapUrl !== undefined ? (venueMapUrl || null) : undefined,
     };
 
     const updatedEvent = await prisma.event.update({
@@ -117,7 +121,7 @@ export async function PUT(req: NextRequest) {
       data: updateData,
     });
 
-    memoryCache.delete(EVENTS_CACHE_KEY);
+    await cacheDel(EVENTS_CACHE_KEY);
 
     return NextResponse.json({ success: true, event: updatedEvent });
   } catch (error) {
@@ -192,7 +196,7 @@ export async function DELETE(req: NextRequest) {
       }
     });
 
-    memoryCache.delete(EVENTS_CACHE_KEY);
+    await cacheDel(EVENTS_CACHE_KEY);
 
     return NextResponse.json({
       success: true,

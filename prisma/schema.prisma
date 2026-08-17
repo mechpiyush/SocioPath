@@ -51,6 +51,7 @@ model Event {
   gallery              Json?
   organizerContact     String?
   venue                String?
+  venueMapUrl          String?
   bookings             Booking[]
   EventReview          EventReview[]
   SeatReservation      SeatReservation[]
@@ -72,6 +73,8 @@ model Booking {
   pricePaid           Float?
   qrCode              String?
   quantity            Int                  @default(1)
+  maleQuantity        Int                  @default(0)
+  femaleQuantity      Int                  @default(0)
   refund_amount       Float?
   refund_status       String?
   reservation_expiry  DateTime?

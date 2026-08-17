@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { razorpay } from '@/lib/razorpay';
-import { memoryCache } from '@/lib/cache';
+import { cacheDel } from '@/lib/redis';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Invalidate the cache
-    memoryCache.delete(EVENTS_CACHE_KEY);
+    await cacheDel(EVENTS_CACHE_KEY);
 
     return NextResponse.json({
       success: true,

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import EventCard from '@/app/components/EventCard';
 import EventModal from '@/app/components/EventModal';
+import BookingCheckoutModal from '@/app/components/BookingCheckoutModal';
 import AuthModal from '@/app/components/AuthModal';
 import ProfileModal from '@/app/components/ProfileModal';
 import BookingSuccess from '@/app/components/BookingSuccess';
@@ -19,10 +20,14 @@ interface Event {
   description: string;
   date: string;
   price: number;
+  femaleDiscount?: number;
+  genderPricingEnabled?: boolean;
   minCapacity: number;
   maxCapacity: number;
   status: string;
   spotsFilled: number;
+  venue?: string;
+  venueMapEmbedUrl?: string;
 }
 
 export default function Home() {
@@ -30,7 +35,7 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState<string>('');
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [activeModal, setActiveModal] = useState<'details' | 'auth' | 'profile' | 'success' | null>(null);
+  const [activeModal, setActiveModal] = useState<'details' | 'checkout' | 'auth' | 'profile' | 'success' | null>(null);
   const [infoModalType, setInfoModalType] = useState<'about' | 'privacy' | 'terms' | ''>('');
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   
@@ -66,10 +71,7 @@ export default function Home() {
       } catch (err) {
         console.error('Failed to initialize app state:', err);
       } finally {
-        // Smooth delay to avoid instant splash flash
-        setTimeout(() => {
-          setSiteLoading(false);
-        }, 800);
+        setSiteLoading(false);
       }
     };
 
@@ -80,7 +82,7 @@ export default function Home() {
     if (!siteLoading) {
       const timer = setTimeout(() => {
         setShowSplash(false);
-      }, 500); // 500ms fade transition
+      }, 200); // brief fade transition once real data has loaded
       return () => clearTimeout(timer);
     }
   }, [siteLoading]);
@@ -120,13 +122,22 @@ export default function Home() {
     }
   };
 
-  const handleInitializeBooking = async (eventId: string, quantity: number = 1) => {
+  const handleOpenEventDetails = useCallback((event: Event) => {
+    setSelectedEvent(event);
+    setActiveModal('details');
+  }, []);
+
+  const handleProceedToBooking = useCallback((eventId: string) => {
+    setActiveModal('checkout');
+  }, []);
+
+  const handleInitializeBooking = async (eventId: string, maleQuantity: number = 0, femaleQuantity: number = 0) => {
     setBookingLoading(true);
     try {
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, quantity }),
+        body: JSON.stringify({ eventId, maleQuantity, femaleQuantity }),
       });
 
       const data = await res.json();
@@ -170,11 +181,12 @@ export default function Home() {
         setLastBooking({
           eventTitle: orderData.eventTitle,
           amount: orderData.amount,
-          quantity: orderData.quantity || 1,
+          maleQuantity: orderData.maleQuantity || 0,
+          femaleQuantity: orderData.femaleQuantity || 0,
           orderId: orderData.razorpayOrderId,
           date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
         });
-        
+
         setActiveModal('success');
         fetchEvents(); // reload list / cache clear
       } catch (err: any) {
@@ -226,7 +238,8 @@ export default function Home() {
           setLastBooking({
             eventTitle: orderData.eventTitle,
             amount: orderData.amount,
-            quantity: orderData.quantity || 1,
+            maleQuantity: orderData.maleQuantity || 0,
+            femaleQuantity: orderData.femaleQuantity || 0,
             orderId: response.razorpay_order_id,
             date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
           });
@@ -376,10 +389,7 @@ export default function Home() {
                   key={event.id}
                   event={event}
                   user={user}
-                  onClick={() => {
-                    setSelectedEvent(event);
-                    setActiveModal('details');
-                  }}
+                  onClick={() => handleOpenEventDetails(event)}
                 />
               ))}
             </div>
@@ -404,6 +414,16 @@ export default function Home() {
       {/* Modal Layers */}
       <EventModal
         isOpen={activeModal === 'details'}
+        event={selectedEvent}
+        onClose={() => {
+          setSelectedEvent(null);
+          setActiveModal(null);
+        }}
+        onProceedToBooking={handleProceedToBooking}
+      />
+
+      <BookingCheckoutModal
+        isOpen={activeModal === 'checkout'}
         event={selectedEvent}
         onClose={() => {
           setSelectedEvent(null);
