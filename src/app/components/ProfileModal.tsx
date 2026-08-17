@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { X, User, Ticket, LogOut, CheckCircle, Clock, RotateCcw, AlertCircle, IndianRupee, Settings, Save } from 'lucide-react';
+import BookingDetailModal from './BookingDetailModal';
 
 interface ProfileModalProps {
   isOpen: boolean;
+  initialTab?: 'profile' | 'bookings';
   onClose: () => void;
   user: any;
   onSignOut: () => void;
@@ -13,11 +15,17 @@ interface ProfileModalProps {
   onSuccessMessage?: (msg: string) => void;
 }
 
-export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserUpdate, onSuccessMessage }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, initialTab = 'bookings', onClose, user, onSignOut, onUserUpdate, onSuccessMessage }: ProfileModalProps) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'bookings' | 'profile'>('bookings');
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Form State
   const [name, setName] = useState('');
@@ -32,6 +40,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
 
   // Sync state if user prop changes
   useEffect(() => {
@@ -172,7 +181,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
               onClick={() => setActiveTab('bookings')}
             >
               <Ticket size={16} />
-              <span>Reservations</span>
+              <span>My Bookings</span>
             </button>
             <button
               className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
@@ -233,6 +242,9 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
                       <div
                         key={booking.id}
                         className={`booking-item-card ${isConfirmed ? 'border-confirmed' : isRefunded ? 'border-refunded' : 'border-pending'}`}
+                        onClick={() => setSelectedBooking(booking)}
+                        role="button"
+                        tabIndex={0}
                       >
                         <div className="booking-info-left">
                           <h4>{booking.event.title}</h4>
@@ -256,7 +268,10 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
                               {canCancel && (
                                 <button
                                   className="btn-cancel-booking"
-                                  onClick={() => handleCancelBooking(booking.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelBooking(booking.id);
+                                  }}
                                   disabled={cancellingId === booking.id}
                                 >
                                   {cancellingId === booking.id ? 'Cancelling...' : 'Cancel Booking'}
@@ -406,6 +421,12 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           )}
         </div>
       </div>
+
+      <BookingDetailModal
+        isOpen={!!selectedBooking}
+        booking={selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+      />
 
       <style jsx>{`
         .profile-backdrop {
@@ -602,6 +623,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSignOut, onUserU
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid var(--border-color);
           transition: all 0.2s;
+          cursor: pointer;
         }
         .booking-item-card:hover {
           background: rgba(255, 255, 255, 0.04);

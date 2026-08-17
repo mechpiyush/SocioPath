@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, IndianRupee, ShieldAlert, Users, ExternalLink } from 'lucide-react';
 
 interface Event {
@@ -117,6 +117,8 @@ export default function BookingCheckoutModal({
   const [femaleQty, setFemaleQty] = useState(0);
   const [waiverChecked, setWaiverChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [waiverHighlight, setWaiverHighlight] = useState(false);
+  const waiverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,6 +126,7 @@ export default function BookingCheckoutModal({
       setFemaleQty(0);
       setWaiverChecked(false);
       setErrorMessage('');
+      setWaiverHighlight(false);
     }
   }, [isOpen]);
 
@@ -170,6 +173,9 @@ export default function BookingCheckoutModal({
 
     if (!waiverChecked) {
       setErrorMessage('You must read and agree to the Maharashtra legal drinking age compliance waiver.');
+      waiverRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setWaiverHighlight(true);
+      setTimeout(() => setWaiverHighlight(false), 2000);
       return;
     }
 
@@ -252,7 +258,7 @@ export default function BookingCheckoutModal({
               </div>
             )}
 
-            <div className="legal-waiver-wrapper">
+            <div ref={waiverRef} className={`legal-waiver-wrapper ${waiverHighlight ? 'attention-pulse' : ''}`}>
               <label className="checkbox-container" htmlFor="checkout-waiver-checkbox">
                 <input
                   id="checkout-waiver-checkbox"
@@ -260,7 +266,10 @@ export default function BookingCheckoutModal({
                   checked={waiverChecked}
                   onChange={(e) => {
                     setWaiverChecked(e.target.checked);
-                    if (e.target.checked) setErrorMessage('');
+                    if (e.target.checked) {
+                      setErrorMessage('');
+                      setWaiverHighlight(false);
+                    }
                   }}
                 />
                 <span className="checkmark"></span>
@@ -590,6 +599,15 @@ export default function BookingCheckoutModal({
           border: 1px solid rgba(245, 158, 11, 0.15);
           border-radius: 12px;
           padding: 0.75rem 1rem;
+          transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .legal-waiver-wrapper.attention-pulse {
+          animation: waiver-attention 0.6s ease-in-out 2;
+          border-color: var(--accent-rose);
+        }
+        @keyframes waiver-attention {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
+          50% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
         }
         .checkbox-container {
           display: flex;

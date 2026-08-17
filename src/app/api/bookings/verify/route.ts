@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cacheDel } from '@/lib/redis';
 import { razorpay } from '@/lib/razorpay';
+import { sendBookingConfirmation } from '@/lib/email';
 import crypto from 'crypto';
+import QRCode from 'qrcode';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
 
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Find the pending booking
     const booking = await prisma.booking.findUnique({
       where: { razorpayOrderId },
-      include: { event: true },
+      include: { event: true, user: true },
     });
 
     if (!booking) {
@@ -45,7 +47,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (booking.status === 'CONFIRMED') {
-      return NextResponse.json({ success: true, message: 'Already verified.' });
+      return NextResponse.json({
+        success: true,
+        message: 'Already verified.',
+        ticketNumber: booking.ticketNumber,
+        bookingToken: booking.bookingToken,
+        qrCode: booking.qrCode,
+      });
     }
 
     // Double check capacity under transactional isolation
@@ -62,12 +70,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session is now sold out.' }, { status: 400 });
     }
 
+    const ticketNumber = `SOCIO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const bookingToken = crypto.randomUUID();
+    const qrCode = await QRCode.toDataURL(bookingToken);
+
     // Confirm booking and update event status if threshold met
     const updatedBooking = await prisma.$transaction(async (tx: any) => {
       const b = await tx.booking.update({
         where: { id: booking.id },
         data: {
           status: 'CONFIRMED',
+          ticketNumber,
+          bookingToken,
+          qrCode,
           razorpayPaymentId,
           razorpaySignature: razorpaySignature || 'mock_signature',
         },
@@ -97,11 +112,32 @@ export async function POST(req: NextRequest) {
     await cacheDel(EVENTS_CACHE_KEY);
     console.log('Booking confirmed, cache invalidated.');
 
+    if (booking.user?.email) {
+      const eventDate = new Date(booking.event.date).toLocaleDateString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+      });
+
+      sendBookingConfirmation(booking.user.email, {
+        userName: booking.user.name,
+        eventTitle: booking.event.title,
+        eventDate,
+        venue: booking.event.venue || undefined,
+        quantity: booking.quantity,
+        finalAmount: booking.finalAmount || booking.event.price,
+        taxes: booking.taxes || 0,
+        ticketNumber,
+        bookingId: booking.id,
+      }).catch((err) => console.error('Booking confirmation email failed:', err));
+    }
+
     return NextResponse.json({
       success: true,
       bookingId: updatedBooking.id,
       quantity: booking.quantity,
       spotsFilled: confirmedSpots + booking.quantity,
+      ticketNumber,
+      bookingToken,
+      qrCode,
     });
   } catch (error) {
     console.error('Booking verification error:', error);

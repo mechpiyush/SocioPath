@@ -12,6 +12,8 @@ interface BookingSuccessProps {
     maleQuantity?: number;
     femaleQuantity?: number;
     orderId: string;
+    ticketNumber?: string;
+    qrCode?: string;
     date: string;
   } | null;
 }
@@ -79,6 +81,9 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
         <div className="ticket-card">
           <div className="ticket-section-header">
             <h3>{bookingDetails.eventTitle}</h3>
+            {bookingDetails.ticketNumber && (
+              <span className="ticket-number-badge">{bookingDetails.ticketNumber}</span>
+            )}
           </div>
           <div className="ticket-body">
             <div className="ticket-info-row">
@@ -128,6 +133,15 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
           </div>
         </div>
 
+        {bookingDetails.qrCode && (
+          <div className="qr-card">
+            <img src={bookingDetails.qrCode} alt="Booking QR code" className="qr-image" />
+            <p className="qr-caption">Show this QR code at entry for verification</p>
+          </div>
+        )}
+
+        <p className="email-confirmation-note">📧 Check your email for the confirmation & QR ticket.</p>
+
         <button
           id="success-done-btn"
           className="btn-primary success-action-btn"
@@ -148,10 +162,11 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
           background: rgba(3, 7, 18, 0.95);
           backdrop-filter: blur(16px);
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           z-index: 1100;
-          padding: 1.5rem;
+          padding: 3vh 1.5rem;
+          overflow-y: auto;
         }
         .success-container {
           width: 100%;
@@ -161,6 +176,7 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
           text-align: center;
           box-shadow: var(--shadow-lg), 0 0 60px -10px rgba(16, 185, 129, 0.2);
           border: 1px solid rgba(16, 185, 129, 0.15);
+          margin: auto;
         }
         .success-icon-wrapper {
           width: 80px;
@@ -198,10 +214,54 @@ export default function BookingSuccess({ onClose, bookingDetails }: BookingSucce
           background: rgba(255, 255, 255, 0.01);
           border-bottom: 1px dashed var(--border-color);
           padding: 1.25rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          flex-wrap: wrap;
         }
         .ticket-section-header h3 {
           font-size: 1.1rem;
           color: #fff;
+        }
+        .ticket-number-badge {
+          font-family: var(--font-display);
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          color: var(--accent-emerald);
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          border-radius: 9999px;
+          padding: 0.3rem 0.7rem;
+          white-space: nowrap;
+        }
+        .email-confirmation-note {
+          font-size: 0.8rem;
+          color: var(--fg-secondary);
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+        .qr-card {
+          background: #fff;
+          border-radius: 20px;
+          padding: 1.25rem;
+          margin-bottom: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.6rem;
+        }
+        .qr-image {
+          width: 160px;
+          height: 160px;
+          display: block;
+        }
+        .qr-caption {
+          font-size: 0.75rem;
+          color: #111;
+          font-weight: 600;
+          text-align: center;
         }
         .ticket-body {
           padding: 1.5rem;

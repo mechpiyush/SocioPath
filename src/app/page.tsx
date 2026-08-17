@@ -43,6 +43,7 @@ export default function Home() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [lastBooking, setLastBooking] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<'profile' | 'bookings'>('bookings');
 
   // Site Loading screen states
   const [siteLoading, setSiteLoading] = useState(true);
@@ -184,6 +185,8 @@ export default function Home() {
           maleQuantity: orderData.maleQuantity || 0,
           femaleQuantity: orderData.femaleQuantity || 0,
           orderId: orderData.razorpayOrderId,
+          ticketNumber: verification.ticketNumber,
+          qrCode: verification.qrCode,
           date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
         });
 
@@ -241,6 +244,8 @@ export default function Home() {
             maleQuantity: orderData.maleQuantity || 0,
             femaleQuantity: orderData.femaleQuantity || 0,
             orderId: response.razorpay_order_id,
+            ticketNumber: verification.ticketNumber,
+            qrCode: verification.qrCode,
             date: events.find((e) => e.title === orderData.eventTitle)?.date || new Date().toISOString(),
           });
 
@@ -282,7 +287,10 @@ export default function Home() {
       <Header
         user={user}
         onOpenAuth={() => setActiveModal('auth')}
-        onOpenProfile={() => setActiveModal('profile')}
+        onOpenProfile={(tab) => {
+          setProfileInitialTab(tab || 'bookings');
+          setActiveModal('profile');
+        }}
         onSignOut={handleSignOut}
       />
 
@@ -445,6 +453,7 @@ export default function Home() {
 
       <ProfileModal
         isOpen={activeModal === 'profile'}
+        initialTab={profileInitialTab}
         onClose={() => setActiveModal(null)}
         user={user}
         onSignOut={handleSignOut}

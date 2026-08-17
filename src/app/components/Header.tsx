@@ -7,7 +7,7 @@ import { User, Shield, ChevronDown, Ticket, LogOut } from 'lucide-react';
 interface HeaderProps {
   user: any;
   onOpenAuth: () => void;
-  onOpenProfile: () => void;
+  onOpenProfile: (tab?: 'profile' | 'bookings') => void;
   onSignOut: () => void;
 }
 
@@ -70,7 +70,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
                     id="dropdown-view-profile-btn"
                     className="dropdown-item"
                     onClick={() => {
-                      onOpenProfile();
+                      onOpenProfile('profile');
                       setDropdownOpen(false);
                     }}
                   >
@@ -82,7 +82,7 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
                     id="dropdown-my-bookings-btn"
                     className="dropdown-item"
                     onClick={() => {
-                      onOpenProfile(); // ProfileModal handles booking list
+                      onOpenProfile('bookings');
                       setDropdownOpen(false);
                     }}
                   >
