@@ -28,6 +28,11 @@ interface Event {
   spotsFilled: number;
   venue?: string;
   venueMapEmbedUrl?: string;
+  banner?: string;
+  category?: string;
+  gallery?: string[];
+  faqs?: { question: string; answer: string }[];
+  cancellationPolicy?: string;
 }
 
 export default function Home() {

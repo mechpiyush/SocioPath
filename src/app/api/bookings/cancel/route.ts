@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { razorpay } from '@/lib/razorpay';
 import { cacheDel } from '@/lib/redis';
+import { sendCancellationEmail } from '@/lib/email';
+import crypto from 'crypto';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
 
@@ -72,14 +74,28 @@ export async function POST(req: NextRequest) {
       data: { status: 'REFUNDED' },
     });
 
+    // Persist a cancellation record for audit/reporting
+    const refundAmount = booking.finalAmount || booking.event.price;
+    await prisma.bookingCancellation.create({
+      data: {
+        id: crypto.randomUUID(),
+        bookingId: booking.id,
+        reason: 'User initiated cancellation',
+        refundPercent: 100,
+        refundAmount,
+      },
+    });
+
     // If event is CONFIRMED and active bookings drop below minCapacity (10), we can flip it back to PENDING.
-    // Let's count current confirmed bookings for this event:
-    const activeCount = await prisma.booking.count({
+    // Let's count current confirmed bookings for this event (sum quantity, not row count):
+    const activeBookings = await prisma.booking.findMany({
       where: {
         eventId: booking.eventId,
         status: 'CONFIRMED',
       },
+      select: { quantity: true },
     });
+    const activeCount = activeBookings.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
 
     if (activeCount < booking.event.minCapacity && booking.event.status === 'CONFIRMED') {
       await prisma.event.update({
@@ -90,6 +106,17 @@ export async function POST(req: NextRequest) {
 
     // Invalidate the cache
     await cacheDel(EVENTS_CACHE_KEY);
+
+    if (session.email) {
+      sendCancellationEmail(session.email, {
+        userName: session.name,
+        eventTitle: booking.event.title,
+        eventDate: new Date(booking.event.date).toLocaleDateString('en-IN'),
+        ticketNumber: booking.ticketNumber || booking.id,
+        refundAmount,
+        refundPercent: 100,
+      }).catch((err) => console.error('Cancellation email failed:', err));
+    }
 
     return NextResponse.json({
       success: true,

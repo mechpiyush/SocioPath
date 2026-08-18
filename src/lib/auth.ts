@@ -16,6 +16,9 @@ export type SessionUser = {
   mobile?: string | null;
   dob?: string | null;
   instagram?: string | null;
+  phone?: string | null;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 };
 
 export async function setSession(user: SessionUser) {

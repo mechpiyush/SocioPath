@@ -37,6 +37,12 @@ export async function GET() {
       spotsFilled: event._count.bookings,
       venue: event.venue,
       venueMapEmbedUrl: getVenueMapEmbedUrl(event.venue, event.venueMapUrl),
+      banner: event.banner,
+      category: event.category,
+      gallery: event.gallery,
+      faqs: event.faqs,
+      cancellationPolicy: event.cancellationPolicy,
+      organizerContact: event.organizerContact,
     }));
 
     await cacheSet(EVENTS_CACHE_KEY, mappedEvents, CACHE_TTL_SECONDS);

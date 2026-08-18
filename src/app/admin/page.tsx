@@ -10,10 +10,16 @@ export default function AdminDashboard() {
   const [authError, setAuthError] = useState('');
   
   // Dashboard states
-  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'bookings'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'bookings' | 'users'>('list');
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [attendanceUpdatingId, setAttendanceUpdatingId] = useState<string | null>(null);
+
+  // User Management tab state
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
   
   // Create / Edit Event Form State
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -27,6 +33,12 @@ export default function AdminDashboard() {
   const [maxCapacity, setMaxCapacity] = useState('20');
   const [venue, setVenue] = useState('');
   const [venueMapUrl, setVenueMapUrl] = useState('');
+  const [banner, setBanner] = useState('');
+  const [category, setCategory] = useState('');
+  const [galleryText, setGalleryText] = useState('');
+  const [faqsText, setFaqsText] = useState('');
+  const [cancellationPolicy, setCancellationPolicy] = useState('');
+  const [organizerContact, setOrganizerContact] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
   // Passcode verification
@@ -70,6 +82,22 @@ export default function AdminDashboard() {
     }
   };
 
+  // Parses one gallery image URL per line into an array
+  const parseGallery = (text: string): string[] =>
+    text.split('\n').map((line) => line.trim()).filter(Boolean);
+
+  // Parses "Question :: Answer" per line into {question, answer}[]
+  const parseFaqs = (text: string): { question: string; answer: string }[] =>
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [question, ...rest] = line.split('::');
+        return { question: question.trim(), answer: rest.join('::').trim() };
+      })
+      .filter((faq) => faq.question && faq.answer);
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -91,6 +119,12 @@ export default function AdminDashboard() {
           maxCapacity: parseInt(maxCapacity),
           venue,
           venueMapUrl,
+          banner,
+          category,
+          gallery: parseGallery(galleryText),
+          faqs: parseFaqs(faqsText),
+          cancellationPolicy,
+          organizerContact,
         }),
       });
 
@@ -111,7 +145,13 @@ export default function AdminDashboard() {
       setMaxCapacity('20');
       setVenue('');
       setVenueMapUrl('');
-      
+      setBanner('');
+      setCategory('');
+      setGalleryText('');
+      setFaqsText('');
+      setCancellationPolicy('');
+      setOrganizerContact('');
+
       setTimeout(() => {
         setFormSuccess('');
         setActiveTab('list');
@@ -139,6 +179,12 @@ export default function AdminDashboard() {
     setMaxCapacity(event.maxCapacity.toString());
     setVenue(event.venue || '');
     setVenueMapUrl(event.venueMapUrl || '');
+    setBanner(event.banner || '');
+    setCategory(event.category || '');
+    setGalleryText(Array.isArray(event.gallery) ? event.gallery.join('\n') : '');
+    setFaqsText(Array.isArray(event.faqs) ? event.faqs.map((f: any) => `${f.question} :: ${f.answer}`).join('\n') : '');
+    setCancellationPolicy(event.cancellationPolicy || '');
+    setOrganizerContact(event.organizerContact || '');
     setActiveTab('create');
   };
 
@@ -166,6 +212,12 @@ export default function AdminDashboard() {
           maxCapacity: parseInt(maxCapacity),
           venue,
           venueMapUrl,
+          banner,
+          category,
+          gallery: parseGallery(galleryText),
+          faqs: parseFaqs(faqsText),
+          cancellationPolicy,
+          organizerContact,
         }),
       });
 
@@ -187,7 +239,13 @@ export default function AdminDashboard() {
       setMaxCapacity('20');
       setVenue('');
       setVenueMapUrl('');
-      
+      setBanner('');
+      setCategory('');
+      setGalleryText('');
+      setFaqsText('');
+      setCancellationPolicy('');
+      setOrganizerContact('');
+
       setTimeout(() => {
         setFormSuccess('');
         setActiveTab('list');
@@ -222,12 +280,66 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch users.');
+      setUsers(data.users || []);
+    } catch (err: any) {
+      setError(err.message || 'Error loading users.');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleToggleRole = async (userId: string, currentRole: string) => {
+    const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
+    if (!confirm(`Change this user's role to ${newRole}?`)) return;
+    setRoleUpdatingId(userId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update role');
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update role.');
+    } finally {
+      setRoleUpdatingId(null);
+    }
+  };
+
+  const handleMarkAttendance = async (bookingId: string, status: string) => {
+    setAttendanceUpdatingId(bookingId);
+    try {
+      const res = await fetch('/api/admin/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update attendance');
+      fetchAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update attendance.');
+    } finally {
+      setAttendanceUpdatingId(null);
+    }
+  };
+
   // Compile guest logs from all events
   const guestLogs: any[] = [];
   events.forEach((event) => {
     event.bookings.forEach((booking: any) => {
       guestLogs.push({
         bookingId: booking.id,
+        bookingToken: booking.bookingToken,
+        attendanceStatus: booking.attendance_status || 'PENDING',
         eventTitle: event.title,
         eventDate: new Date(event.date),
         userName: booking.user?.name || 'SocioPath Member',
@@ -424,12 +536,22 @@ export default function AdminDashboard() {
           <Plus size={16} />
           <span>{editingEventId ? 'Edit Event Details' : 'Add New Event'}</span>
         </button>
-        <button 
+        <button
           className={`dash-tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
           onClick={() => setActiveTab('bookings')}
         >
           <ClipboardList size={16} />
           <span>Attendee Booking Logs ({guestLogs.length})</span>
+        </button>
+        <button
+          className={`dash-tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('users');
+            fetchUsers();
+          }}
+        >
+          <Users size={16} />
+          <span>User Management</span>
         </button>
       </nav>
 
@@ -654,6 +776,74 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="evt-banner">Banner Image URL (optional)</label>
+                <input
+                  id="evt-banner"
+                  type="text"
+                  placeholder="https://..."
+                  value={banner}
+                  onChange={(e) => setBanner(e.target.value)}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="evt-category">Category (optional)</label>
+                <input
+                  id="evt-category"
+                  type="text"
+                  placeholder="e.g. Music, Networking, Games"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="evt-organizer">Organizer Contact (optional)</label>
+                <input
+                  id="evt-organizer"
+                  type="text"
+                  placeholder="Phone / email"
+                  value={organizerContact}
+                  onChange={(e) => setOrganizerContact(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-full">
+              <label htmlFor="evt-gallery">Gallery Image URLs (optional, one per line)</label>
+              <textarea
+                id="evt-gallery"
+                rows={3}
+                placeholder={'https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg'}
+                value={galleryText}
+                onChange={(e) => setGalleryText(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group-full">
+              <label htmlFor="evt-faqs">FAQs (optional, one per line as "Question :: Answer")</label>
+              <textarea
+                id="evt-faqs"
+                rows={3}
+                placeholder={'Is alcohol provided? :: BYOD is supported, we do not sell alcohol.\nIs parking available? :: Yes, free on-site parking.'}
+                value={faqsText}
+                onChange={(e) => setFaqsText(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group-full">
+              <label htmlFor="evt-cancellation">Cancellation Policy (optional)</label>
+              <textarea
+                id="evt-cancellation"
+                rows={3}
+                placeholder="e.g. Full refund up to 72 hours before the event."
+                value={cancellationPolicy}
+                onChange={(e) => setCancellationPolicy(e.target.value)}
+              />
+            </div>
+
             <div className="form-actions">
               {editingEventId && (
                 <button
@@ -702,6 +892,7 @@ export default function AdminDashboard() {
                     <th>Vibe Social Card</th>
                     <th>Booking Time</th>
                     <th>Status</th>
+                    <th>Attendance</th>
                     <th>Razorpay Payment ID</th>
                   </tr>
                 </thead>
@@ -740,11 +931,90 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td>
+                          {log.bookingStatus === 'CONFIRMED' ? (
+                            <select
+                              className={`attendance-select ${log.attendanceStatus.toLowerCase()}`}
+                              value={log.attendanceStatus}
+                              disabled={attendanceUpdatingId === log.bookingId}
+                              onChange={(e) => handleMarkAttendance(log.bookingId, e.target.value)}
+                            >
+                              <option value="PENDING">Pending</option>
+                              <option value="PRESENT">Present</option>
+                              <option value="ABSENT">Absent</option>
+                            </select>
+                          ) : (
+                            <span className="attendance-na">N/A</span>
+                          )}
+                        </td>
+                        <td>
                           <code className="payment-code">{log.paymentId}</code>
                         </td>
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Tab: User Management */}
+      {activeTab === 'users' && (
+        <section className="bookings-log-section glass-panel">
+          <h3>User Management</h3>
+
+          {usersLoading ? (
+            <p className="empty-text">Loading users...</p>
+          ) : users.length === 0 ? (
+            <p className="empty-text">No users found.</p>
+          ) : (
+            <div className="bookings-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Gender</th>
+                    <th>Mobile</th>
+                    <th>Bookings</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="guest-info-cell">
+                          <strong>{u.name || 'SocioPath Member'}</strong>
+                          <span className="guest-email">{u.email || u.phone || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`gender-tag ${(u.gender || 'other').toLowerCase()}`}>
+                          {u.gender || 'N/A'}
+                        </span>
+                      </td>
+                      <td>{u.mobile || u.phone || 'N/A'}</td>
+                      <td>{u._count?.bookings ?? 0}</td>
+                      <td>
+                        <span className={`status-badge-inline ${u.role === 'ADMIN' ? 'confirmed' : 'pending'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td>{new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                      <td>
+                        <button
+                          className="btn-cancel-booking"
+                          onClick={() => handleToggleRole(u.id, u.role)}
+                          disabled={roleUpdatingId === u.id}
+                        >
+                          {roleUpdatingId === u.id ? 'Updating...' : u.role === 'ADMIN' ? 'Revoke Admin' : 'Make Admin'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -907,6 +1177,50 @@ export default function AdminDashboard() {
         .status-badge-inline.cancelled, .status-badge-inline.refunded {
           background: rgba(244, 63, 94, 0.1);
           color: var(--accent-rose);
+        }
+        .attendance-select {
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 0.3rem 0.5rem;
+          border-radius: 6px;
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.03);
+          color: var(--fg-secondary);
+        }
+        .attendance-select.present {
+          color: var(--accent-emerald);
+          border-color: rgba(16, 185, 129, 0.3);
+        }
+        .attendance-select.absent {
+          color: var(--accent-rose);
+          border-color: rgba(244, 63, 94, 0.3);
+        }
+        .attendance-select option {
+          background: #0f1423;
+          color: #fff;
+        }
+        .attendance-na {
+          font-size: 0.75rem;
+          color: var(--fg-tertiary);
+        }
+        .btn-cancel-booking {
+          background: rgba(99, 102, 241, 0.08);
+          color: var(--accent-indigo);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          border-radius: 6px;
+          padding: 0.3rem 0.6rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .btn-cancel-booking:hover:not(:disabled) {
+          background: var(--accent-indigo);
+          color: #fff;
+        }
+        .btn-cancel-booking:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         .gender-tag {
           font-size: 0.75rem;

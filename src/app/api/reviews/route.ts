@@ -45,6 +45,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Comment cannot be empty.' }, { status: 400 });
     }
 
+    const confirmedBookings = await prisma.booking.count({
+      where: { userId: session.id, status: 'CONFIRMED' },
+    });
+    if (confirmedBookings === 0) {
+      return NextResponse.json({ error: 'You must have attended at least one event to leave a review.' }, { status: 403 });
+    }
+
     // Auto-provision user in this container if they don't exist yet
     let user = await prisma.user.findUnique({
       where: { id: session.id },

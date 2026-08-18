@@ -1,6 +1,7 @@
 'use client';
 
-import { X, Calendar, MapPin, IndianRupee, Users, CheckCircle, Clock, RotateCcw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Calendar, MapPin, IndianRupee, Users, CheckCircle, Clock, RotateCcw, Star } from 'lucide-react';
 
 interface BookingDetailModalProps {
   isOpen: boolean;
@@ -9,6 +10,21 @@ interface BookingDetailModalProps {
 }
 
 export default function BookingDetailModal({ isOpen, booking, onClose }: BookingDetailModalProps) {
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setReviewRating(0);
+      setReviewComment('');
+      setReviewSubmitted(false);
+      setReviewError('');
+    }
+  }, [isOpen, booking?.id]);
+
   if (!isOpen || !booking) return null;
 
   const event = booking.event;
@@ -30,6 +46,34 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
   const femaleQuantity = booking.femaleQuantity || 0;
   const totalQuantity = booking.quantity || (maleQuantity + femaleQuantity) || 1;
   const finalAmount = booking.finalAmount ?? event.price;
+  const hasReview = !!booking.EventReview;
+
+  const handleSubmitReview = async () => {
+    if (reviewRating < 1) {
+      setReviewError('Please select a star rating.');
+      return;
+    }
+    if (!reviewComment.trim()) {
+      setReviewError('Please write a short comment.');
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const res = await fetch('/api/reviews/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id, rating: reviewRating, comment: reviewComment.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit review');
+      setReviewSubmitted(true);
+    } catch (err: any) {
+      setReviewError(err.message || 'Failed to submit review.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   return (
     <div id="booking-detail-backdrop" className="detail-backdrop" onClick={(e) => {
@@ -110,6 +154,49 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
             <p className="qr-status-note">Your QR ticket will appear here once payment is confirmed.</p>
           )}
         </div>
+
+        {isConfirmed && (
+          <div className="review-section">
+            {hasReview ? (
+              <p className="review-thanks">✅ You already reviewed this event. Thanks for the feedback!</p>
+            ) : reviewSubmitted ? (
+              <p className="review-thanks">🎉 Review submitted — thanks for sharing your experience!</p>
+            ) : (
+              <div className="review-form">
+                <span className="review-form-label">Leave a review for this event</span>
+                <div className="star-picker">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className="star-btn"
+                      onClick={() => setReviewRating(n)}
+                      aria-label={`Rate ${n} star${n > 1 ? 's' : ''}`}
+                    >
+                      <Star size={22} fill={n <= reviewRating ? 'currentColor' : 'none'} className={n <= reviewRating ? 'star-filled' : 'star-empty'} />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="review-textarea"
+                  rows={2}
+                  placeholder="How was your experience?"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                />
+                {reviewError && <p className="review-error">{reviewError}</p>}
+                <button
+                  type="button"
+                  className="btn-primary review-submit-btn"
+                  onClick={handleSubmitReview}
+                  disabled={reviewSubmitting}
+                >
+                  {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -274,6 +361,59 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
         }
         .qr-status-note.refunded {
           color: var(--accent-rose);
+        }
+        .review-section {
+          margin-top: 1.5rem;
+          padding-top: 1.25rem;
+          border-top: 1px solid var(--border-color);
+        }
+        .review-thanks {
+          font-size: 0.85rem;
+          color: var(--accent-emerald);
+          text-align: center;
+        }
+        .review-form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.65rem;
+        }
+        .review-form-label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--fg-secondary);
+        }
+        .star-picker {
+          display: flex;
+          gap: 0.35rem;
+        }
+        .star-btn {
+          padding: 0.15rem;
+          color: var(--fg-tertiary);
+        }
+        .star-filled {
+          color: var(--accent-amber);
+        }
+        .star-empty {
+          color: var(--fg-tertiary);
+        }
+        .review-textarea {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          padding: 0.65rem 0.85rem;
+          color: #fff;
+          font-size: 0.85rem;
+          font-family: inherit;
+          resize: vertical;
+        }
+        .review-error {
+          font-size: 0.75rem;
+          color: var(--accent-rose);
+        }
+        .review-submit-btn {
+          align-self: flex-end;
+          padding: 0.55rem 1.1rem;
+          font-size: 0.85rem;
         }
       `}</style>
     </div>

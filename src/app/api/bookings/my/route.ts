@@ -15,6 +15,7 @@ export async function GET() {
       },
       include: {
         event: true,
+        EventReview: true,
       },
       orderBy: {
         createdAt: 'desc',

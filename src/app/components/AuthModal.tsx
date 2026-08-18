@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, LogIn, AlertCircle } from 'lucide-react';
+import { X, LogIn, AlertCircle, Phone } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,24 +10,36 @@ interface AuthModalProps {
   googleClientId: string;
 }
 
+type AuthMode = 'google' | 'phone' | 'mock';
+
 export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }: AuthModalProps) {
-  const [isMockMode, setIsMockMode] = useState(!googleClientId);
+  const [authMode, setAuthMode] = useState<AuthMode>(googleClientId ? 'google' : 'mock');
+  const isMockMode = authMode === 'mock';
   const [mockEmail, setMockEmail] = useState('');
   const [mockName, setMockName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
+  // Phone OTP state
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
   useEffect(() => {
     // Reset states on open
     if (isOpen) {
       setError('');
       setLoading(false);
+      setOtpSent(false);
+      setPhoneNumber('');
+      setOtpCode('');
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || isMockMode || typeof window === 'undefined') return;
+    if (!isOpen || authMode !== 'google' || typeof window === 'undefined') return;
 
     let cancelled = false;
     const maxAttempts = 25; // ~10s total (25 * 400ms), covers slow lazyOnload script loads
@@ -58,7 +70,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
         } catch (err) {
           console.error('Failed to initialize Google GSI:', err);
           setError('Google Sign-In failed to initialize. Using Mock Mode instead.');
-          setIsMockMode(true);
+          setAuthMode('mock');
         }
         return;
       }
@@ -77,7 +89,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [isOpen, isMockMode, googleClientId]);
+  }, [isOpen, authMode, googleClientId]);
 
   const handleAuthResponse = async (payload: { credential?: string; isMock?: boolean; mockData?: any }) => {
     setLoading(true);
@@ -98,6 +110,55 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
       onClose();
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^[6-9]\d{9}$/.test(phoneNumber)) {
+      setError('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    setOtpLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/phone/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      setOtpSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode) {
+      setError('Please enter the OTP.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/phone/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, otp: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+      onSuccess(data.user);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify OTP.');
     } finally {
       setLoading(false);
     }
@@ -145,34 +206,111 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
           <button
             id="toggle-oauth-btn"
             type="button"
-            className={!isMockMode ? 'active' : ''}
+            className={authMode === 'google' ? 'active' : ''}
             onClick={() => {
               if (!googleClientId) {
                 setError('Google Client ID is missing in configuration. Mock Mode is mandatory.');
                 return;
               }
-              setIsMockMode(false);
+              setAuthMode('google');
+              setError('');
             }}
           >
-            Google Sign-In
+            Google
+          </button>
+          <button
+            id="toggle-phone-btn"
+            type="button"
+            className={authMode === 'phone' ? 'active' : ''}
+            onClick={() => {
+              setAuthMode('phone');
+              setError('');
+            }}
+          >
+            Phone
           </button>
           <button
             id="toggle-mock-btn"
             type="button"
-            className={isMockMode ? 'active' : ''}
-            onClick={() => setIsMockMode(true)}
+            className={authMode === 'mock' ? 'active' : ''}
+            onClick={() => {
+              setAuthMode('mock');
+              setError('');
+            }}
           >
-            Developer Mock
+            Dev Mock
           </button>
         </div>
 
         <div className="auth-content">
-          {!isMockMode ? (
+          {authMode === 'google' ? (
             <div className="google-auth-wrapper">
               <div id="google-signin-btn-container" ref={googleBtnRef}></div>
               <p className="auth-disclaimer">
                 We'll securely sign you in or automatically create an account if you don't have one yet.
               </p>
+            </div>
+          ) : authMode === 'phone' ? (
+            <div className="phone-auth-wrapper">
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="mock-form" id="phone-send-form">
+                  <div className="form-group">
+                    <label htmlFor="phone-number-input">Mobile Number</label>
+                    <div className="phone-input-wrapper">
+                      <span className="phone-prefix">+91</span>
+                      <input
+                        id="phone-number-input"
+                        type="tel"
+                        placeholder="10-digit number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button
+                    id="phone-send-otp-btn"
+                    type="submit"
+                    className="btn-primary mock-submit"
+                    disabled={otpLoading}
+                  >
+                    <Phone size={16} />
+                    {otpLoading ? 'Sending...' : 'Send OTP'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="mock-form" id="phone-verify-form">
+                  <div className="form-group">
+                    <label htmlFor="otp-code-input">Enter OTP sent to +91 {phoneNumber}</label>
+                    <input
+                      id="otp-code-input"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="6-digit OTP"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    id="phone-verify-otp-btn"
+                    type="submit"
+                    className="btn-primary mock-submit"
+                    disabled={loading}
+                  >
+                    <LogIn size={16} />
+                    {loading ? 'Verifying...' : 'Verify & Sign In'}
+                  </button>
+                  <button
+                    type="button"
+                    className="resend-link"
+                    onClick={() => { setOtpSent(false); setOtpCode(''); }}
+                  >
+                    Change number / resend
+                  </button>
+                </form>
+              )}
             </div>
           ) : (
             <form onSubmit={handleMockSubmit} className="mock-form" id="mock-auth-form">
@@ -290,9 +428,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
         }
         .mode-toggle button {
           flex: 1;
-          padding: 0.6rem;
+          padding: 0.55rem 0.4rem;
           border-radius: 9999px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: var(--fg-secondary);
         }
@@ -348,6 +486,37 @@ export default function AuthModal({ isOpen, onClose, onSuccess, googleClientId }
           justify-content: center;
           margin-top: 0.5rem;
           width: 100%;
+        }
+        .phone-auth-wrapper {
+          padding: 0.5rem 0;
+        }
+        .phone-input-wrapper {
+          display: flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+        }
+        .phone-prefix {
+          padding-left: 1rem;
+          color: var(--fg-tertiary);
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+        .phone-input-wrapper input {
+          border: none !important;
+          background: transparent !important;
+          padding-left: 0.5rem !important;
+        }
+        .resend-link {
+          align-self: center;
+          font-size: 0.8rem;
+          color: var(--fg-secondary);
+          text-decoration: underline;
+          margin-top: 0.25rem;
+        }
+        .resend-link:hover {
+          color: #fff;
         }
       `}</style>
     </div>

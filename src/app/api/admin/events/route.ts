@@ -3,16 +3,9 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { razorpay } from '@/lib/razorpay';
 import { cacheDel } from '@/lib/redis';
+import { isAdmin as checkAdmin } from '@/lib/admin';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
-
-function checkAdmin(session: any) {
-  if (!session) return false;
-  if (session.role === 'ADMIN') return true;
-  if (session.email === 'iiit.piyush@gmail.com') return true;
-  if (process.env.ADMIN_EMAIL && session.email === process.env.ADMIN_EMAIL) return true;
-  return false;
-}
 
 // GET all events (including cancelled, with full bookings count)
 export async function GET() {
@@ -55,7 +48,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, venue, venueMapUrl } = await req.json();
+    const {
+      title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity,
+      venue, venueMapUrl, banner, category, gallery, faqs, cancellationPolicy, organizerContact,
+    } = await req.json();
 
     if (!title || !description || !date || price === undefined) {
       return NextResponse.json({ error: 'Missing required event fields.' }, { status: 400 });
@@ -72,6 +68,12 @@ export async function POST(req: NextRequest) {
       maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : 20,
       venue: venue || undefined,
       venueMapUrl: venueMapUrl || undefined,
+      banner: banner || undefined,
+      category: category || undefined,
+      gallery: gallery !== undefined ? gallery : undefined,
+      faqs: faqs !== undefined ? faqs : undefined,
+      cancellationPolicy: cancellationPolicy || undefined,
+      organizerContact: organizerContact || undefined,
       status: 'PENDING',
     };
 
@@ -96,7 +98,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { id, title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, status, venue, venueMapUrl } = await req.json();
+    const {
+      id, title, description, date, price, femaleDiscount, genderPricingEnabled, minCapacity, maxCapacity, status,
+      venue, venueMapUrl, banner, category, gallery, faqs, cancellationPolicy, organizerContact,
+    } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Event ID is required.' }, { status: 400 });
@@ -114,6 +119,12 @@ export async function PUT(req: NextRequest) {
       status: status || undefined,
       venue: venue !== undefined ? (venue || null) : undefined,
       venueMapUrl: venueMapUrl !== undefined ? (venueMapUrl || null) : undefined,
+      banner: banner !== undefined ? (banner || null) : undefined,
+      category: category !== undefined ? (category || null) : undefined,
+      gallery: gallery !== undefined ? gallery : undefined,
+      faqs: faqs !== undefined ? faqs : undefined,
+      cancellationPolicy: cancellationPolicy !== undefined ? (cancellationPolicy || null) : undefined,
+      organizerContact: organizerContact !== undefined ? (organizerContact || null) : undefined,
     };
 
     const updatedEvent = await prisma.event.update({

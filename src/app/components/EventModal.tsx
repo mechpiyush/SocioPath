@@ -1,6 +1,12 @@
 'use client';
 
-import { X, Calendar, IndianRupee, MapPin, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { X, Calendar, IndianRupee, MapPin, CheckCircle, AlertTriangle, Sparkles, ChevronDown, Info } from 'lucide-react';
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
 
 interface Event {
   id: string;
@@ -16,6 +22,11 @@ interface Event {
   spotsFilled: number;
   venue?: string;
   venueMapEmbedUrl?: string;
+  banner?: string;
+  category?: string;
+  gallery?: string[];
+  faqs?: FaqItem[];
+  cancellationPolicy?: string;
 }
 
 interface EventModalProps {
@@ -31,7 +42,12 @@ export default function EventModal({
   onClose,
   onProceedToBooking,
 }: EventModalProps) {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
   if (!isOpen || !event) return null;
+
+  const gallery = Array.isArray(event.gallery) ? event.gallery : [];
+  const faqs = Array.isArray(event.faqs) ? event.faqs : [];
 
   const formattedDate = new Date(event.date).toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -81,11 +97,18 @@ export default function EventModal({
         </button>
 
         <div className="modal-body">
+          {event.banner && (
+            <div className="banner-wrapper">
+              <img src={event.banner} alt={event.title} className="banner-image" />
+            </div>
+          )}
+
           {/* Header */}
           <div className="modal-header">
             <span className={`modal-status-badge ${isSoldOut ? 'soldout' : isConfirmed ? 'confirmed' : 'pending'}`}>
               {isSoldOut ? 'Sold Out' : isConfirmed ? 'Confirmed Session' : 'Pending Capacity'}
             </span>
+            {event.category && <span className="category-badge">{event.category}</span>}
             <h2 id="event-modal-title">{event.title}</h2>
 
             <div className="modal-meta-row">
@@ -119,6 +142,48 @@ export default function EventModal({
                   ))}
                 </ul>
               </section>
+
+              {gallery.length > 0 && (
+                <section className="section-gallery">
+                  <h3>Gallery</h3>
+                  <div className="gallery-strip">
+                    {gallery.map((src, idx) => (
+                      <img key={idx} src={src} alt={`${event.title} gallery ${idx + 1}`} className="gallery-image" />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {faqs.length > 0 && (
+                <section className="section-faqs">
+                  <h3>Frequently Asked Questions</h3>
+                  <div className="faq-list">
+                    {faqs.map((faq, idx) => (
+                      <div key={idx} className="faq-item">
+                        <button
+                          type="button"
+                          className="faq-question"
+                          onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                          aria-expanded={openFaqIndex === idx}
+                        >
+                          <span>{faq.question}</span>
+                          <ChevronDown size={16} className={`faq-chevron ${openFaqIndex === idx ? 'open' : ''}`} />
+                        </button>
+                        {openFaqIndex === idx && (
+                          <p className="faq-answer">{faq.answer}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {event.cancellationPolicy && (
+                <section className="section-cancellation">
+                  <h3><Info size={16} className="icon-info" /> Cancellation Policy</h3>
+                  <p>{event.cancellationPolicy}</p>
+                </section>
+              )}
             </div>
 
             <div className="grid-right">
@@ -275,6 +340,32 @@ export default function EventModal({
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
+        .banner-wrapper {
+          border-radius: 20px;
+          overflow: hidden;
+          margin-bottom: 1.75rem;
+          max-height: 260px;
+        }
+        .banner-image {
+          width: 100%;
+          height: 100%;
+          max-height: 260px;
+          object-fit: cover;
+          display: block;
+        }
+        .category-badge {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--accent-purple);
+          background: rgba(139, 92, 246, 0.12);
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          padding: 0.3rem 0.65rem;
+          border-radius: 9999px;
+          margin-left: 0.5rem;
+        }
         .modal-meta-row {
           display: flex;
           flex-wrap: wrap;
@@ -325,6 +416,78 @@ export default function EventModal({
           color: var(--accent-emerald);
           flex-shrink: 0;
           margin-top: 0.1rem;
+        }
+        .section-gallery h3, .section-faqs h3 {
+          font-size: 1.2rem;
+          color: #fff;
+          margin-bottom: 0.75rem;
+        }
+        .gallery-strip {
+          display: flex;
+          gap: 0.75rem;
+          overflow-x: auto;
+          padding-bottom: 0.25rem;
+        }
+        .gallery-image {
+          width: 140px;
+          height: 100px;
+          object-fit: cover;
+          border-radius: 12px;
+          flex-shrink: 0;
+          border: 1px solid var(--border-color);
+        }
+        .faq-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+        }
+        .faq-item {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .faq-question {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          padding: 0.85rem 1rem;
+          color: #fff;
+          font-size: 0.9rem;
+          font-weight: 600;
+          text-align: left;
+        }
+        .faq-chevron {
+          color: var(--fg-secondary);
+          flex-shrink: 0;
+          transition: transform 0.2s;
+        }
+        .faq-chevron.open {
+          transform: rotate(180deg);
+        }
+        .faq-answer {
+          padding: 0 1rem 0.9rem;
+          color: var(--fg-secondary);
+          font-size: 0.85rem;
+          line-height: 1.5;
+        }
+        .section-cancellation h3 {
+          font-size: 1.05rem;
+          color: #fff;
+          margin-bottom: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+        .icon-info {
+          color: var(--accent-amber);
+        }
+        .section-cancellation p {
+          color: var(--fg-secondary);
+          font-size: 0.85rem;
+          line-height: 1.5;
         }
         .booking-card {
           background: rgba(255, 255, 255, 0.02);
