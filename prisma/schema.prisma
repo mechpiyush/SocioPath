@@ -159,6 +159,25 @@ model RefundTransaction {
   Booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
+model SiteSettings {
+  id                   String   @id
+  siteName             String   @default("SocioPath")
+  tagline              String?
+  logoUrl              String?
+  faviconUrl           String?
+  metaTitle            String?
+  metaDescription      String?
+  metaKeywords         String?
+  aboutUsContent       String?
+  privacyPolicyContent String?
+  termsContent         String?
+  supportEmail         String?
+  footerText           String?
+  linkedinUrl          String?
+  teamMembers          Json?
+  updatedAt            DateTime @updatedAt
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model SeatReservation {
   id        String   @id

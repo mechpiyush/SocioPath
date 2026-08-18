@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, IndianRupee, Users, CheckCircle, Clock, RotateCcw, Star } from 'lucide-react';
+import { X, MapPin, CheckCircle, Clock, RotateCcw, Star, Plane } from 'lucide-react';
 
 interface BookingDetailModalProps {
   isOpen: boolean;
   booking: any | null;
+  userName?: string;
   onClose: () => void;
 }
 
-export default function BookingDetailModal({ isOpen, booking, onClose }: BookingDetailModalProps) {
+export default function BookingDetailModal({ isOpen, booking, userName, onClose }: BookingDetailModalProps) {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
@@ -28,14 +29,14 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
   if (!isOpen || !booking) return null;
 
   const event = booking.event;
-  const eventDate = new Date(event.date).toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
+  const eventDateShort = new Date(event.date).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+  const eventTime = new Date(event.date).toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+  const bookedOnDate = new Date(booking.createdAt).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
   });
 
   const isConfirmed = booking.status === 'CONFIRMED';
@@ -47,6 +48,10 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
   const totalQuantity = booking.quantity || (maleQuantity + femaleQuantity) || 1;
   const finalAmount = booking.finalAmount ?? event.price;
   const hasReview = !!booking.EventReview;
+
+  const membersLabel = maleQuantity > 0 || femaleQuantity > 0
+    ? [maleQuantity > 0 ? `${maleQuantity}M` : null, femaleQuantity > 0 ? `${femaleQuantity}F` : null].filter(Boolean).join(' + ')
+    : `${totalQuantity} Guest${totalQuantity > 1 ? 's' : ''}`;
 
   const handleSubmitReview = async () => {
     if (reviewRating < 1) {
@@ -79,80 +84,89 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
     <div id="booking-detail-backdrop" className="detail-backdrop" onClick={(e) => {
       if (e.target === e.currentTarget) onClose();
     }}>
-      <div className="detail-card glass-panel animate-scale-up" role="dialog" aria-modal="true">
+      <div className="detail-wrapper animate-scale-up">
         <button className="close-btn" onClick={onClose} aria-label="Close booking details">
           <X size={20} />
         </button>
 
-        <div className="detail-header">
-          <span className={`status-indicator ${isConfirmed ? 'status-confirmed' : isPending ? 'status-pending' : 'status-refunded'}`}>
-            {isConfirmed ? <CheckCircle size={14} /> : isPending ? <Clock size={14} /> : <RotateCcw size={14} />}
-            <span>{isConfirmed ? 'Confirmed' : isPending ? 'Pending' : 'Refunded'}</span>
-          </span>
-          <h2>{event.title}</h2>
-          {booking.ticketNumber && (
-            <span className="ticket-number-badge">{booking.ticketNumber}</span>
-          )}
-        </div>
-
-        <div className="detail-body">
-          <div className="info-row">
-            <Calendar size={18} className="info-icon" />
-            <div>
-              <span className="info-label">Date & Time</span>
-              <span className="info-value">{eventDate}</span>
-            </div>
-          </div>
-
-          {event.venue && (
-            <div className="info-row">
-              <MapPin size={18} className="info-icon" />
-              <div>
-                <span className="info-label">Venue</span>
-                <span className="info-value">{event.venue}</span>
+        {/* Boarding-pass style ticket */}
+        <div className="pass-card">
+          <div className="pass-main">
+            <div className="pass-header">
+              <div className="pass-brand">
+                <Plane size={16} />
+                <span>SOCIOPATH PASS</span>
               </div>
-            </div>
-          )}
-
-          <div className="info-row">
-            <Users size={18} className="info-icon" />
-            <div>
-              <span className="info-label">Tickets</span>
-              <span className="info-value">
-                {maleQuantity > 0 && `${maleQuantity} Male`}
-                {maleQuantity > 0 && femaleQuantity > 0 && ' + '}
-                {femaleQuantity > 0 && `${femaleQuantity} Female`}
-                {!maleQuantity && !femaleQuantity && `${totalQuantity} Guest${totalQuantity > 1 ? 's' : ''}`}
-                {(maleQuantity > 0 || femaleQuantity > 0) && ` (${totalQuantity} total)`}
+              <span className={`status-indicator ${isConfirmed ? 'status-confirmed' : isPending ? 'status-pending' : 'status-refunded'}`}>
+                {isConfirmed ? <CheckCircle size={13} /> : isPending ? <Clock size={13} /> : <RotateCcw size={13} />}
+                <span>{isConfirmed ? 'Confirmed' : isPending ? 'Pending' : 'Refunded'}</span>
               </span>
             </div>
-          </div>
 
-          <div className="info-row">
-            <IndianRupee size={18} className="info-icon" />
-            <div>
-              <span className="info-label">Amount Paid</span>
-              <span className="info-value">₹{finalAmount.toLocaleString('en-IN')}</span>
+            <h2 className="pass-event-title">{event.title}</h2>
+            {event.venue && (
+              <div className="pass-venue">
+                <MapPin size={14} />
+                <span>{event.venue}</span>
+              </div>
+            )}
+
+            <div className="pass-fields-grid">
+              <div className="pass-field">
+                <span className="pass-field-label">Passenger</span>
+                <span className="pass-field-value">{userName || 'Guest'}</span>
+              </div>
+              <div className="pass-field">
+                <span className="pass-field-label">Event Date</span>
+                <span className="pass-field-value">{eventDateShort}</span>
+              </div>
+              <div className="pass-field">
+                <span className="pass-field-label">Time</span>
+                <span className="pass-field-value">{eventTime}</span>
+              </div>
+              <div className="pass-field">
+                <span className="pass-field-label">Seats</span>
+                <span className="pass-field-value">{membersLabel}</span>
+              </div>
+              <div className="pass-field">
+                <span className="pass-field-label">Booked On</span>
+                <span className="pass-field-value">{bookedOnDate}</span>
+              </div>
+              <div className="pass-field">
+                <span className="pass-field-label">Amount Paid</span>
+                <span className="pass-field-value">₹{finalAmount.toLocaleString('en-IN')}</span>
+              </div>
             </div>
           </div>
 
-          <div className="order-meta">
-            <span>Order ID: {booking.razorpayOrderId}</span>
-            {booking.razorpayPaymentId && <span>Payment ID: {booking.razorpayPaymentId}</span>}
+          {/* Perforated divider with notches */}
+          <div className="pass-divider">
+            <span className="notch notch-left"></span>
+            <span className="dashed-line"></span>
+            <span className="notch notch-right"></span>
+          </div>
+
+          <div className="pass-stub">
+            <div className="stub-ticket-number">
+              <span className="pass-field-label">Ticket No.</span>
+              <span className="stub-code">{booking.ticketNumber || '—'}</span>
+            </div>
+
+            <div className="stub-qr">
+              {isConfirmed && booking.qrCode ? (
+                <img src={booking.qrCode} alt="Booking QR code" className="qr-image" />
+              ) : isRefunded ? (
+                <p className="qr-status-note refunded">Refunded — not valid for entry</p>
+              ) : (
+                <p className="qr-status-note">QR appears once confirmed</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="qr-section">
-          {isConfirmed && booking.qrCode ? (
-            <div className="qr-card">
-              <img src={booking.qrCode} alt="Booking QR code" className="qr-image" />
-              <p className="qr-caption">Show this QR code at entry for verification</p>
-            </div>
-          ) : isRefunded ? (
-            <p className="qr-status-note refunded">This booking was refunded — the ticket is no longer valid for entry.</p>
-          ) : (
-            <p className="qr-status-note">Your QR ticket will appear here once payment is confirmed.</p>
-          )}
+        <div className="order-meta">
+          <span>Order ID: {booking.razorpayOrderId}</span>
+          {booking.razorpayPaymentId && <span>Payment ID: {booking.razorpayPaymentId}</span>}
         </div>
 
         {isConfirmed && (
@@ -215,157 +229,214 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
           padding: 3vh 1.5rem;
           overflow-y: auto;
         }
-        .detail-card {
+        .detail-wrapper {
           width: 100%;
-          max-width: 480px;
+          max-width: 440px;
           margin: auto;
-          border-radius: 24px;
           position: relative;
-          box-shadow: var(--shadow-lg), 0 0 50px -10px rgba(99, 102, 241, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 2.25rem;
         }
         .close-btn {
           position: absolute;
-          top: 1.25rem;
-          right: 1.25rem;
+          top: -0.75rem;
+          right: -0.75rem;
+          z-index: 10;
           color: var(--fg-tertiary);
           padding: 0.5rem;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255, 255, 255, 0.02);
+          background: #0b0f19;
           border: 1px solid var(--border-color);
         }
         .close-btn:hover {
           color: var(--fg-primary);
           background: rgba(255, 255, 255, 0.08);
         }
-        .detail-header {
-          margin-bottom: 1.5rem;
-          padding-bottom: 1.25rem;
-          border-bottom: 1px solid var(--border-color);
+
+        /* ── Boarding pass card ───────────────────────────────────────── */
+        .pass-card {
+          background: #0b0f19;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 22px;
+          overflow: hidden;
+          box-shadow: var(--shadow-lg), 0 0 60px -15px rgba(99, 102, 241, 0.25);
+        }
+        .pass-main {
+          background: var(--gradient-primary), rgba(255, 255, 255, 0.02);
+          background-blend-mode: overlay;
+          padding: 1.75rem 1.75rem 1.5rem;
+        }
+        .pass-header {
           display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 0.6rem;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.25rem;
+        }
+        .pass-brand {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          color: rgba(255, 255, 255, 0.85);
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
         }
         .status-indicator {
           display: flex;
           align-items: center;
-          gap: 0.35rem;
-          font-size: 0.7rem;
+          gap: 0.3rem;
+          font-size: 0.65rem;
           font-weight: 700;
-          padding: 0.3rem 0.6rem;
+          padding: 0.25rem 0.55rem;
           border-radius: 6px;
           text-transform: uppercase;
           letter-spacing: 0.03em;
-        }
-        .status-confirmed {
-          background: rgba(16, 185, 129, 0.1);
-          color: var(--accent-emerald);
-        }
-        .status-pending {
-          background: rgba(245, 158, 11, 0.1);
-          color: var(--accent-amber);
-        }
-        .status-refunded {
-          background: rgba(255, 255, 255, 0.05);
-          color: var(--fg-secondary);
-        }
-        .detail-header h2 {
-          font-size: 1.4rem;
+          background: rgba(255, 255, 255, 0.15);
           color: #fff;
         }
-        .ticket-number-badge {
-          font-family: var(--font-display);
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.03em;
-          color: var(--accent-cyan);
-          background: rgba(6, 182, 212, 0.1);
-          border: 1px solid rgba(6, 182, 212, 0.3);
-          border-radius: 9999px;
-          padding: 0.3rem 0.7rem;
+        .status-indicator.status-confirmed {
+          background: rgba(16, 185, 129, 0.25);
         }
-        .detail-body {
+        .status-indicator.status-pending {
+          background: rgba(245, 158, 11, 0.25);
+        }
+        .status-indicator.status-refunded {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .pass-event-title {
+          font-size: 1.3rem;
+          color: #fff;
+          font-family: var(--font-display);
+          margin-bottom: 0.5rem;
+          line-height: 1.25;
+        }
+        .pass-venue {
           display: flex;
-          flex-direction: column;
-          gap: 1.1rem;
+          align-items: center;
+          gap: 0.4rem;
+          color: rgba(255, 255, 255, 0.75);
+          font-size: 0.8rem;
           margin-bottom: 1.5rem;
         }
-        .info-row {
+        .pass-fields-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem 0.75rem;
+        }
+        .pass-field {
           display: flex;
-          gap: 0.75rem;
+          flex-direction: column;
+          gap: 0.2rem;
         }
-        .info-icon {
-          color: var(--accent-indigo);
-          flex-shrink: 0;
-          margin-top: 0.15rem;
-        }
-        .info-label {
-          display: block;
-          font-size: 0.72rem;
-          color: var(--fg-tertiary);
+        .pass-field-label {
+          font-size: 0.62rem;
           text-transform: uppercase;
-          font-weight: 600;
-          letter-spacing: 0.05em;
-          margin-bottom: 0.15rem;
+          letter-spacing: 0.06em;
+          color: rgba(255, 255, 255, 0.55);
+          font-weight: 700;
         }
-        .info-value {
-          display: block;
-          font-size: 0.9rem;
+        .pass-field-value {
+          font-size: 0.85rem;
           color: #fff;
-          font-weight: 500;
+          font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        .order-meta {
-          border-top: 1px solid var(--border-color);
-          padding-top: 0.85rem;
+
+        /* Perforated divider with notches cut into the card edges */
+        .pass-divider {
+          position: relative;
+          height: 0;
           display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          font-size: 0.7rem;
-          color: var(--fg-tertiary);
-          word-break: break-all;
-        }
-        .qr-section {
-          display: flex;
-          justify-content: center;
-        }
-        .qr-card {
-          background: #fff;
-          border-radius: 18px;
-          padding: 1.1rem;
-          display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
+        }
+        .notch {
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: rgba(3, 7, 18, 0.98);
+          top: -12px;
+        }
+        .notch-left {
+          left: -12px;
+        }
+        .notch-right {
+          right: -12px;
+        }
+        .dashed-line {
+          width: 100%;
+          border-top: 2px dashed rgba(255, 255, 255, 0.15);
+        }
+
+        .pass-stub {
+          padding: 1.25rem 1.75rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+        }
+        .stub-ticket-number {
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+        }
+        .stub-code {
+          font-family: var(--font-display);
+          font-size: 0.95rem;
+          font-weight: 800;
+          letter-spacing: 0.03em;
+          color: var(--accent-cyan);
+        }
+        .stub-qr {
+          background: #fff;
+          border-radius: 12px;
+          padding: 0.5rem;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 84px;
+          min-height: 84px;
         }
         .qr-image {
-          width: 150px;
-          height: 150px;
+          width: 76px;
+          height: 76px;
           display: block;
         }
-        .qr-caption {
-          font-size: 0.72rem;
-          color: #111;
-          font-weight: 600;
-          text-align: center;
-        }
         .qr-status-note {
-          font-size: 0.8rem;
-          color: var(--fg-secondary);
+          font-size: 0.62rem;
+          color: #333;
           text-align: center;
-          padding: 1rem;
+          font-weight: 600;
+          max-width: 76px;
         }
         .qr-status-note.refunded {
           color: var(--accent-rose);
         }
+
+        .order-meta {
+          margin-top: 1rem;
+          padding: 0.85rem 1rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          font-size: 0.68rem;
+          color: var(--fg-tertiary);
+          word-break: break-all;
+        }
+
         .review-section {
           margin-top: 1.5rem;
-          padding-top: 1.25rem;
-          border-top: 1px solid var(--border-color);
+          padding: 1.25rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 16px;
         }
         .review-thanks {
           font-size: 0.85rem;
@@ -414,6 +485,12 @@ export default function BookingDetailModal({ isOpen, booking, onClose }: Booking
           align-self: flex-end;
           padding: 0.55rem 1.1rem;
           font-size: 0.85rem;
+        }
+
+        @media (max-width: 420px) {
+          .pass-fields-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
       `}</style>
     </div>

@@ -7,6 +7,12 @@ import { isAdmin as checkAdmin } from '@/lib/admin';
 
 const EVENTS_CACHE_KEY = 'events_list_cache';
 
+// Safe numeric parse — never lets NaN leak into a Postgres float column
+function safeFloat(value: any, fallback = 0): number {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 // GET all events (including cancelled, with full bookings count)
 export async function GET() {
   try {
@@ -61,8 +67,8 @@ export async function POST(req: NextRequest) {
       title,
       description,
       date: new Date(date),
-      price: parseFloat(price),
-      femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : 0,
+      price: safeFloat(price),
+      femaleDiscount: femaleDiscount !== undefined ? safeFloat(femaleDiscount) : 0,
       genderPricingEnabled: genderPricingEnabled !== undefined ? Boolean(genderPricingEnabled) : true,
       minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : 10,
       maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : 20,
@@ -111,8 +117,8 @@ export async function PUT(req: NextRequest) {
       title: title || undefined,
       description: description || undefined,
       date: date ? new Date(date) : undefined,
-      price: price !== undefined ? parseFloat(price) : undefined,
-      femaleDiscount: femaleDiscount !== undefined ? parseFloat(femaleDiscount) : undefined,
+      price: price !== undefined ? safeFloat(price) : undefined,
+      femaleDiscount: femaleDiscount !== undefined ? safeFloat(femaleDiscount) : undefined,
       genderPricingEnabled: genderPricingEnabled !== undefined ? Boolean(genderPricingEnabled) : undefined,
       minCapacity: minCapacity !== undefined ? parseInt(minCapacity) : undefined,
       maxCapacity: maxCapacity !== undefined ? parseInt(maxCapacity) : undefined,

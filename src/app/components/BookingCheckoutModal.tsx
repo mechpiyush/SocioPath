@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { X, IndianRupee, ShieldAlert, Users, ExternalLink } from 'lucide-react';
+import { X, IndianRupee, ShieldAlert, Users, ExternalLink, CheckCircle, FileText } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -118,6 +118,7 @@ export default function BookingCheckoutModal({
   const [waiverChecked, setWaiverChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [waiverHighlight, setWaiverHighlight] = useState(false);
+  const [showByodPopup, setShowByodPopup] = useState(false);
   const waiverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function BookingCheckoutModal({
       setWaiverChecked(false);
       setErrorMessage('');
       setWaiverHighlight(false);
+      setShowByodPopup(false);
     }
   }, [isOpen]);
 
@@ -258,27 +260,63 @@ export default function BookingCheckoutModal({
               </div>
             )}
 
-            <div ref={waiverRef} className={`legal-waiver-wrapper ${waiverHighlight ? 'attention-pulse' : ''}`}>
-              <label className="checkbox-container" htmlFor="checkout-waiver-checkbox">
-                <input
-                  id="checkout-waiver-checkbox"
-                  type="checkbox"
-                  checked={waiverChecked}
-                  onChange={(e) => {
-                    setWaiverChecked(e.target.checked);
-                    if (e.target.checked) {
-                      setErrorMessage('');
-                      setWaiverHighlight(false);
-                    }
-                  }}
-                />
-                <span className="checkmark"></span>
-                <span className="waiver-text">
-                  <span className="waiver-highlight">BYOD Compliance Waiver:</span> I confirm all attendees meet Maharashtra's legal drinking age (21+ beer/wine, 25+ spirits).
-                </span>
-              </label>
+            <div ref={waiverRef} className={`byod-trigger-wrapper ${waiverHighlight ? 'attention-pulse' : ''} ${waiverChecked ? 'acknowledged' : ''}`}>
+              <button
+                type="button"
+                id="byod-terms-trigger-btn"
+                className="byod-trigger-btn"
+                onClick={() => setShowByodPopup(true)}
+              >
+                {waiverChecked ? (
+                  <>
+                    <CheckCircle size={16} className="byod-icon-check" />
+                    <span>BYOD Terms Acknowledged — tap to review</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText size={16} className="byod-icon-file" />
+                    <span>Click Here for BYOD Compliance Terms</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
+
+          {showByodPopup && (
+            <div className="byod-popup-backdrop" onClick={(e) => {
+              if (e.target === e.currentTarget) setShowByodPopup(false);
+            }}>
+              <div className="byod-popup-card">
+                <button type="button" className="byod-popup-close" onClick={() => setShowByodPopup(false)} aria-label="Close">
+                  <X size={18} />
+                </button>
+                <h3>Maharashtra BYOD Compliance Waiver</h3>
+                <p>
+                  This event follows a Bring Your Own Drinks (BYOD) policy under Maharashtra state law. By acknowledging below, you confirm that:
+                </p>
+                <ul className="byod-terms-list">
+                  <li>All attendees under your booking are of legal drinking age in Maharashtra — 21+ for beer &amp; wine, 25+ for spirits.</li>
+                  <li>You accept full responsibility for adherence to state excise regulations regarding personal alcohol consumption.</li>
+                  <li>Venue staff reserve the right to request valid ID proof of age at entry.</li>
+                  <li>Any violation may result in denied entry without refund.</li>
+                </ul>
+                <button
+                  type="button"
+                  id="byod-acknowledge-btn"
+                  className="btn-primary byod-acknowledge-btn"
+                  onClick={() => {
+                    setWaiverChecked(true);
+                    setErrorMessage('');
+                    setWaiverHighlight(false);
+                    setShowByodPopup(false);
+                  }}
+                >
+                  <CheckCircle size={16} />
+                  I Acknowledge & Agree
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Right column: 35%, sticky receipt */}
           <div className="checkout-right">
@@ -593,76 +631,109 @@ export default function BookingCheckoutModal({
           background: rgba(10, 12, 20, 0.98);
         }
 
-        /* ── Compliance waiver — compact, sits below the map ─────────── */
-        .legal-waiver-wrapper {
-          background: rgba(245, 158, 11, 0.04);
-          border: 1px solid rgba(245, 158, 11, 0.15);
+        /* ── Compliance waiver — compact trigger + popup ──────────────── */
+        .byod-trigger-wrapper {
           border-radius: 12px;
-          padding: 0.75rem 1rem;
-          transition: box-shadow 0.2s, border-color 0.2s;
+          transition: box-shadow 0.2s;
         }
-        .legal-waiver-wrapper.attention-pulse {
+        .byod-trigger-wrapper.attention-pulse {
           animation: waiver-attention 0.6s ease-in-out 2;
-          border-color: var(--accent-rose);
         }
         @keyframes waiver-attention {
           0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
           50% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
         }
-        .checkbox-container {
+        .byod-trigger-btn {
+          width: 100%;
           display: flex;
-          align-items: flex-start;
-          gap: 0.65rem;
-          cursor: pointer;
-          font-size: 0.75rem;
-          color: var(--fg-secondary);
-          line-height: 1.45;
-          position: relative;
-          user-select: none;
-        }
-        .checkbox-container input {
-          position: absolute;
-          opacity: 0;
-          cursor: pointer;
-          height: 0;
-          width: 0;
-        }
-        .checkmark {
-          width: 16px;
-          height: 16px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
-          flex-shrink: 0;
-          margin-top: 0.1rem;
-          position: relative;
-          transition: all 0.2s;
-        }
-        .checkbox-container:hover input ~ .checkmark {
-          border-color: var(--fg-secondary);
-        }
-        .checkbox-container input:checked ~ .checkmark {
-          background-color: var(--accent-indigo);
-          border-color: var(--accent-indigo);
-        }
-        .checkmark:after {
-          content: "";
-          position: absolute;
-          display: none;
-          left: 4px;
-          top: 1px;
-          width: 4px;
-          height: 8px;
-          border: solid white;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-        }
-        .checkbox-container input:checked ~ .checkmark:after {
-          display: block;
-        }
-        .waiver-highlight {
-          color: #fff;
+          align-items: center;
+          gap: 0.6rem;
+          background: rgba(245, 158, 11, 0.05);
+          border: 1px solid rgba(245, 158, 11, 0.2);
+          border-radius: 12px;
+          padding: 0.75rem 1rem;
+          color: var(--accent-amber);
+          font-size: 0.8rem;
           font-weight: 600;
+          text-align: left;
+        }
+        .byod-trigger-btn:hover {
+          background: rgba(245, 158, 11, 0.09);
+        }
+        .byod-trigger-wrapper.acknowledged .byod-trigger-btn {
+          background: rgba(16, 185, 129, 0.05);
+          border-color: rgba(16, 185, 129, 0.2);
+          color: var(--accent-emerald);
+        }
+        .byod-icon-file, .byod-icon-check {
+          flex-shrink: 0;
+        }
+        .byod-popup-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(3, 7, 18, 0.85);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1300;
+          padding: 1.5rem;
+        }
+        .byod-popup-card {
+          width: 100%;
+          max-width: 420px;
+          background: #0b0f19;
+          border: 1px solid rgba(245, 158, 11, 0.25);
+          border-radius: 20px;
+          padding: 1.75rem;
+          position: relative;
+          box-shadow: var(--shadow-lg), 0 0 40px -10px rgba(245, 158, 11, 0.2);
+        }
+        .byod-popup-close {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          color: var(--fg-tertiary);
+          padding: 0.4rem;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border-color);
+        }
+        .byod-popup-close:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .byod-popup-card h3 {
+          font-size: 1.15rem;
+          color: #fff;
+          margin-bottom: 0.75rem;
+          padding-right: 1.5rem;
+        }
+        .byod-popup-card p {
+          font-size: 0.85rem;
+          color: var(--fg-secondary);
+          line-height: 1.5;
+          margin-bottom: 0.85rem;
+        }
+        .byod-terms-list {
+          list-style: disc;
+          padding-left: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          color: var(--fg-secondary);
+          line-height: 1.5;
+          margin-bottom: 1.5rem;
+        }
+        .byod-acknowledge-btn {
+          width: 100%;
+          justify-content: center;
+          padding: 0.85rem;
+          font-size: 0.9rem;
         }
 
         /* ── Order summary panel ─────────────────────────────────────── */

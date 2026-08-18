@@ -2,19 +2,44 @@
 
 import { Mail, GraduationCap, Heart } from 'lucide-react';
 
-interface FooterProps {
-  onOpenInfo?: (type: 'about' | 'privacy' | 'terms') => void;
+interface TeamMember {
+  name: string;
+  role: string;
+  credentials?: string;
+  photo?: string;
+  linkedin?: string;
 }
 
-export default function Footer({ onOpenInfo }: FooterProps) {
+interface FooterProps {
+  onOpenInfo?: (type: 'about' | 'privacy' | 'terms') => void;
+  siteName?: string;
+  supportEmail?: string;
+  linkedinUrl?: string;
+  teamMembers?: TeamMember[];
+  footerText?: string;
+}
+
+const DEFAULT_TEAM: TeamMember[] = [{
+  name: 'Piyush Sharma',
+  role: 'Founder & Owner',
+  credentials: 'B.Tech CSE, IIT Mandi',
+  linkedin: 'https://in.linkedin.com/in/piyush-sharma21',
+}];
+
+export default function Footer({ onOpenInfo, siteName, supportEmail, linkedinUrl, teamMembers, footerText }: FooterProps) {
+  const name = siteName || 'SocioPath';
+  const email = supportEmail || 'iiit.piyush@gmail.com';
+  const members = teamMembers && teamMembers.length > 0 ? teamMembers : DEFAULT_TEAM;
+  const primaryLinkedin = linkedinUrl || members[0]?.linkedin || 'https://in.linkedin.com/in/piyush-sharma21';
+
   return (
     <footer className="site-footer glass-panel animate-fade-in" id="main-footer">
       <div className="footer-container">
         {/* About Section */}
         <div className="footer-column footer-about">
-          <h3>SocioPath</h3>
+          <h3>{name}</h3>
           <p>
-            An elite weekend retreat social experience platform matching late-night jamming, karaoke, and interactive games with stranger networking.
+            {footerText || 'An elite weekend retreat social experience platform matching late-night jamming, karaoke, and interactive games with stranger networking.'}
           </p>
         </div>
 
@@ -32,46 +57,51 @@ export default function Footer({ onOpenInfo }: FooterProps) {
         <div className="footer-column footer-support">
           <h4>Help & Support</h4>
           <p>Have questions? Reach out to us directly via email at:</p>
-          <a href="mailto:iiit.piyush@gmail.com" className="email-link" id="support-email-link">
+          <a href={`mailto:${email}`} className="email-link" id="support-email-link">
             <Mail size={16} />
-            <span>iiit.piyush@gmail.com</span>
+            <span>{email}</span>
           </a>
         </div>
 
         {/* Founder Section */}
         <div className="footer-column footer-founder" id="founder-profile">
           <h4>Founders & Team</h4>
-          <div className="founder-card">
-            <div className="founder-info">
-              <span className="founder-title">Founder & Owner</span>
-              <h5>Piyush Sharma</h5>
-              <div className="founder-credentials">
-                <GraduationCap size={14} className="icon-edu" />
-                <span>B.Tech CSE, IIT Mandi</span>
+          {members.map((member, idx) => (
+            <div className="founder-card" key={idx}>
+              <div className="founder-info">
+                <span className="founder-title">{member.role}</span>
+                <h5>{member.name}</h5>
+                {member.credentials && (
+                  <div className="founder-credentials">
+                    <GraduationCap size={14} className="icon-edu" />
+                    <span>{member.credentials}</span>
+                  </div>
+                )}
               </div>
-              <p>Structuring premium social retreats and building operational trust for Mumbaikars.</p>
+              {(member.linkedin || primaryLinkedin) && (
+                <a
+                  id="founder-linkedin-link"
+                  href={member.linkedin || primaryLinkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="linkedin-link"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                    <rect x="2" y="9" width="4" height="12"></rect>
+                    <circle cx="4" cy="4" r="2"></circle>
+                  </svg>
+                  <span>Connect on LinkedIn</span>
+                </a>
+              )}
             </div>
-            <a
-              id="founder-linkedin-link"
-              href="https://in.linkedin.com/in/piyush-sharma21"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="linkedin-link"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                <rect x="2" y="9" width="4" height="12"></rect>
-                <circle cx="4" cy="4" r="2"></circle>
-              </svg>
-              <span>Connect on LinkedIn</span>
-            </a>
-          </div>
+          ))}
         </div>
       </div>
 
       <div className="footer-bottom">
         <div className="footer-bottom-container">
-          <p className="copyright-text">&copy; {new Date().getFullYear()} SocioPath. All rights reserved.</p>
+          <p className="copyright-text">&copy; {new Date().getFullYear()} {name}. All rights reserved.</p>
           <p className="credit-text">
             Made with <Heart size={12} className="heart-icon" /> in Mumbai
           </p>
@@ -148,6 +178,9 @@ export default function Footer({ onOpenInfo }: FooterProps) {
           display: flex;
           flex-direction: column;
           gap: 1rem;
+        }
+        .founder-card + .founder-card {
+          margin-top: 1rem;
         }
         .founder-title {
           font-size: 0.7rem;

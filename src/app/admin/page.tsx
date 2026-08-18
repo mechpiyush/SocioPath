@@ -10,7 +10,20 @@ export default function AdminDashboard() {
   const [authError, setAuthError] = useState('');
   
   // Dashboard states
-  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'bookings' | 'users'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'bookings' | 'users' | 'settings'>('list');
+
+  // Site Settings tab state
+  const [settingsCategory, setSettingsCategory] = useState<'general' | 'seo' | 'legal' | 'contact' | 'team'>('general');
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [settingsForm, setSettingsForm] = useState<any>({
+    siteName: '', tagline: '', logoUrl: '', faviconUrl: '',
+    metaTitle: '', metaDescription: '', metaKeywords: '',
+    aboutUsContent: '', privacyPolicyContent: '', termsContent: '',
+    supportEmail: '', footerText: '', linkedinUrl: '',
+    teamMembers: [] as { name: string; role: string; credentials: string; photo: string; linkedin: string }[],
+  });
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -112,8 +125,8 @@ export default function AdminDashboard() {
           title,
           description,
           date,
-          price: parseFloat(price),
-          femaleDiscount: parseFloat(femaleDiscount),
+          price: price.trim() === '' ? 0 : (parseFloat(price) || 0),
+          femaleDiscount: femaleDiscount.trim() === '' ? 0 : (parseFloat(femaleDiscount) || 0),
           genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
@@ -172,8 +185,8 @@ export default function AdminDashboard() {
     const tzoffset = d.getTimezoneOffset() * 60000; //offset in milliseconds
     const localISOTime = (new Date(d.getTime() - tzoffset)).toISOString().slice(0, -1).substring(0, 16);
     setDate(localISOTime);
-    setPrice(event.price.toString());
-    setFemaleDiscount(event.femaleDiscount.toString());
+    setPrice((event.price || 0).toString());
+    setFemaleDiscount((event.femaleDiscount || 0).toString());
     setGenderPricingEnabled(event.genderPricingEnabled !== false);
     setMinCapacity(event.minCapacity.toString());
     setMaxCapacity(event.maxCapacity.toString());
@@ -205,8 +218,8 @@ export default function AdminDashboard() {
           title,
           description,
           date,
-          price: parseFloat(price),
-          femaleDiscount: parseFloat(femaleDiscount),
+          price: price.trim() === '' ? 0 : (parseFloat(price) || 0),
+          femaleDiscount: femaleDiscount.trim() === '' ? 0 : (parseFloat(femaleDiscount) || 0),
           genderPricingEnabled,
           minCapacity: parseInt(minCapacity),
           maxCapacity: parseInt(maxCapacity),
@@ -312,6 +325,82 @@ export default function AdminDashboard() {
     } finally {
       setRoleUpdatingId(null);
     }
+  };
+
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch('/api/admin/settings');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch settings.');
+      setSettingsForm({
+        siteName: data.settings.siteName || '',
+        tagline: data.settings.tagline || '',
+        logoUrl: data.settings.logoUrl || '',
+        faviconUrl: data.settings.faviconUrl || '',
+        metaTitle: data.settings.metaTitle || '',
+        metaDescription: data.settings.metaDescription || '',
+        metaKeywords: data.settings.metaKeywords || '',
+        aboutUsContent: data.settings.aboutUsContent || '',
+        privacyPolicyContent: data.settings.privacyPolicyContent || '',
+        termsContent: data.settings.termsContent || '',
+        supportEmail: data.settings.supportEmail || '',
+        footerText: data.settings.footerText || '',
+        linkedinUrl: data.settings.linkedinUrl || '',
+        teamMembers: Array.isArray(data.settings.teamMembers) ? data.settings.teamMembers : [],
+      });
+    } catch (err: any) {
+      setError(err.message || 'Error loading site settings.');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setSettingsSaving(true);
+    setSettingsSuccess('');
+    setError('');
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save settings');
+      setSettingsSuccess('Site settings saved!');
+      setTimeout(() => setSettingsSuccess(''), 2500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save site settings.');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const updateSettingsField = (field: string, value: any) => {
+    setSettingsForm((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const updateTeamMember = (idx: number, field: string, value: string) => {
+    setSettingsForm((prev: any) => {
+      const members = [...prev.teamMembers];
+      members[idx] = { ...members[idx], [field]: value };
+      return { ...prev, teamMembers: members };
+    });
+  };
+
+  const addTeamMember = () => {
+    setSettingsForm((prev: any) => ({
+      ...prev,
+      teamMembers: [...prev.teamMembers, { name: '', role: '', credentials: '', photo: '', linkedin: '' }],
+    }));
+  };
+
+  const removeTeamMember = (idx: number) => {
+    setSettingsForm((prev: any) => ({
+      ...prev,
+      teamMembers: prev.teamMembers.filter((_: any, i: number) => i !== idx),
+    }));
   };
 
   const handleMarkAttendance = async (bookingId: string, status: string) => {
@@ -552,6 +641,16 @@ export default function AdminDashboard() {
         >
           <Users size={16} />
           <span>User Management</span>
+        </button>
+        <button
+          className={`dash-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('settings');
+            fetchSettings();
+          }}
+        >
+          <Sparkles size={16} />
+          <span>Site Settings</span>
         </button>
       </nav>
 
@@ -1022,14 +1121,255 @@ export default function AdminDashboard() {
         </section>
       )}
 
+      {/* Tab: Site Settings */}
+      {activeTab === 'settings' && (
+        <section className="bookings-log-section glass-panel settings-section">
+          <h3>Site Settings</h3>
+          <p className="settings-intro">
+            Controls what visitors see across the live site — branding, SEO metadata, legal page content, contact details, and team profiles.
+          </p>
+
+          <nav className="settings-category-nav">
+            {[
+              { key: 'general', label: 'General & Branding' },
+              { key: 'seo', label: 'SEO & Metadata' },
+              { key: 'legal', label: 'Legal Content' },
+              { key: 'contact', label: 'Contact' },
+              { key: 'team', label: 'Team' },
+            ].map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                className={`settings-cat-btn ${settingsCategory === cat.key ? 'active' : ''}`}
+                onClick={() => setSettingsCategory(cat.key as any)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </nav>
+
+          {settingsLoading ? (
+            <p className="empty-text">Loading settings...</p>
+          ) : (
+            <div className="settings-form">
+              {settingsSuccess && <div className="profile-success-banner-admin">{settingsSuccess}</div>}
+
+              {settingsCategory === 'general' && (
+                <div className="settings-fields">
+                  <div className="form-field">
+                    <label htmlFor="set-site-name">Website Name</label>
+                    <input
+                      id="set-site-name"
+                      type="text"
+                      value={settingsForm.siteName}
+                      onChange={(e) => updateSettingsField('siteName', e.target.value)}
+                      placeholder="SocioPath"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-tagline">Tagline</label>
+                    <input
+                      id="set-tagline"
+                      type="text"
+                      value={settingsForm.tagline}
+                      onChange={(e) => updateSettingsField('tagline', e.target.value)}
+                      placeholder="Mumbai's Premium Late-Night Social Experience"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-logo">Logo URL</label>
+                    <input
+                      id="set-logo"
+                      type="text"
+                      value={settingsForm.logoUrl}
+                      onChange={(e) => updateSettingsField('logoUrl', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-favicon">Favicon URL</label>
+                    <input
+                      id="set-favicon"
+                      type="text"
+                      value={settingsForm.faviconUrl}
+                      onChange={(e) => updateSettingsField('faviconUrl', e.target.value)}
+                      placeholder="https://.../favicon.ico"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-footer-text">Footer Description Text</label>
+                    <textarea
+                      id="set-footer-text"
+                      rows={3}
+                      value={settingsForm.footerText}
+                      onChange={(e) => updateSettingsField('footerText', e.target.value)}
+                      placeholder="Short blurb shown in the site footer."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {settingsCategory === 'seo' && (
+                <div className="settings-fields">
+                  <div className="form-field">
+                    <label htmlFor="set-meta-title">Meta Title</label>
+                    <input
+                      id="set-meta-title"
+                      type="text"
+                      value={settingsForm.metaTitle}
+                      onChange={(e) => updateSettingsField('metaTitle', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-meta-desc">Meta Description</label>
+                    <textarea
+                      id="set-meta-desc"
+                      rows={3}
+                      value={settingsForm.metaDescription}
+                      onChange={(e) => updateSettingsField('metaDescription', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-meta-keywords">Meta Keywords (comma-separated)</label>
+                    <input
+                      id="set-meta-keywords"
+                      type="text"
+                      value={settingsForm.metaKeywords}
+                      onChange={(e) => updateSettingsField('metaKeywords', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {settingsCategory === 'legal' && (
+                <div className="settings-fields">
+                  <div className="form-field">
+                    <label htmlFor="set-about">About Us</label>
+                    <textarea
+                      id="set-about"
+                      rows={5}
+                      value={settingsForm.aboutUsContent}
+                      onChange={(e) => updateSettingsField('aboutUsContent', e.target.value)}
+                      placeholder="Leave blank to use the default About text. Separate paragraphs with a blank line."
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-privacy">Privacy Policy</label>
+                    <textarea
+                      id="set-privacy"
+                      rows={5}
+                      value={settingsForm.privacyPolicyContent}
+                      onChange={(e) => updateSettingsField('privacyPolicyContent', e.target.value)}
+                      placeholder="Leave blank to use the default Privacy Policy."
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-terms">Terms of Service</label>
+                    <textarea
+                      id="set-terms"
+                      rows={5}
+                      value={settingsForm.termsContent}
+                      onChange={(e) => updateSettingsField('termsContent', e.target.value)}
+                      placeholder="Leave blank to use the default Terms of Service."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {settingsCategory === 'contact' && (
+                <div className="settings-fields">
+                  <div className="form-field">
+                    <label htmlFor="set-support-email">Help & Support Email</label>
+                    <input
+                      id="set-support-email"
+                      type="email"
+                      value={settingsForm.supportEmail}
+                      onChange={(e) => updateSettingsField('supportEmail', e.target.value)}
+                      placeholder="support@example.com"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="set-linkedin">Company LinkedIn URL</label>
+                    <input
+                      id="set-linkedin"
+                      type="text"
+                      value={settingsForm.linkedinUrl}
+                      onChange={(e) => updateSettingsField('linkedinUrl', e.target.value)}
+                      placeholder="https://linkedin.com/company/..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {settingsCategory === 'team' && (
+                <div className="settings-fields">
+                  {settingsForm.teamMembers.length === 0 && (
+                    <p className="empty-text">No team members added yet — defaults will be shown on the live site.</p>
+                  )}
+                  {settingsForm.teamMembers.map((member: any, idx: number) => (
+                    <div key={idx} className="team-member-card">
+                      <div className="form-row">
+                        <div className="form-field">
+                          <label>Name</label>
+                          <input type="text" value={member.name} onChange={(e) => updateTeamMember(idx, 'name', e.target.value)} />
+                        </div>
+                        <div className="form-field">
+                          <label>Role</label>
+                          <input type="text" value={member.role} onChange={(e) => updateTeamMember(idx, 'role', e.target.value)} placeholder="Founder & Owner" />
+                        </div>
+                        <div className="form-field">
+                          <label>Credentials</label>
+                          <input type="text" value={member.credentials} onChange={(e) => updateTeamMember(idx, 'credentials', e.target.value)} placeholder="B.Tech CSE, IIT Mandi" />
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-field">
+                          <label>Photo URL (optional)</label>
+                          <input type="text" value={member.photo} onChange={(e) => updateTeamMember(idx, 'photo', e.target.value)} />
+                        </div>
+                        <div className="form-field">
+                          <label>LinkedIn URL</label>
+                          <input type="text" value={member.linkedin} onChange={(e) => updateTeamMember(idx, 'linkedin', e.target.value)} />
+                        </div>
+                      </div>
+                      <button type="button" className="btn-cancel-booking" onClick={() => removeTeamMember(idx)}>
+                        Remove Member
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn-secondary" onClick={addTeamMember}>
+                    <Plus size={16} />
+                    Add Team Member
+                  </button>
+                </div>
+              )}
+
+              <div className="settings-save-row">
+                <button
+                  type="button"
+                  className="btn-primary save-btn"
+                  onClick={handleSaveSettings}
+                  disabled={settingsSaving}
+                >
+                  {settingsSaving ? 'Saving...' : 'Save Site Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <style jsx global>{`
         .admin-dashboard-container {
           max-width: 1200px;
+          width: 100%;
+          box-sizing: border-box;
           margin: 4rem auto;
           padding: 0 2rem;
           display: flex;
           flex-direction: column;
           gap: 2.5rem;
+          overflow-x: hidden;
         }
         .dashboard-header {
           padding: 2rem;
@@ -1202,6 +1542,77 @@ export default function AdminDashboard() {
         .attendance-na {
           font-size: 0.75rem;
           color: var(--fg-tertiary);
+        }
+        .settings-intro {
+          color: var(--fg-secondary);
+          font-size: 0.9rem;
+          margin: -0.5rem 0 1.5rem;
+        }
+        .settings-category-nav {
+          display: flex;
+          gap: 0.5rem;
+          overflow-x: auto;
+          padding-bottom: 0.5rem;
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .settings-cat-btn {
+          flex-shrink: 0;
+          padding: 0.5rem 0.9rem;
+          border-radius: 9999px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--fg-secondary);
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          white-space: nowrap;
+        }
+        .settings-cat-btn.active {
+          color: #fff;
+          background: rgba(99, 102, 241, 0.15);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+        .settings-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        .settings-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+        .profile-success-banner-admin {
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--accent-emerald);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          font-size: 0.85rem;
+        }
+        .team-member-card {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid var(--border-color);
+          border-radius: 14px;
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .settings-save-row {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 0.5rem;
+          border-top: 1px solid var(--border-color);
+        }
+        @media (max-width: 640px) {
+          .settings-save-row {
+            justify-content: stretch;
+          }
+          .settings-save-row .save-btn {
+            width: 100%;
+            justify-content: center;
+          }
         }
         .btn-cancel-booking {
           background: rgba(99, 102, 241, 0.08);

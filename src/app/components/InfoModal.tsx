@@ -6,26 +6,51 @@ interface InfoModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'about' | 'privacy' | 'terms' | '';
+  settings?: any;
 }
 
-export default function InfoModal({ isOpen, onClose, type }: InfoModalProps) {
+// Renders admin-supplied plain-text content as paragraphs (blank line = new paragraph)
+function CustomContent({ text }: { text: string }) {
+  return (
+    <div className="modal-content-rich">
+      {text.split(/\n\s*\n/).map((para, idx) => (
+        <p key={idx}>{para}</p>
+      ))}
+    </div>
+  );
+}
+
+export default function InfoModal({ isOpen, onClose, type, settings }: InfoModalProps) {
   if (!isOpen || !type) return null;
+
+  const siteName = settings?.siteName || 'SocioPath';
+  const teamMember = settings?.teamMembers?.[0];
+  const founderName = teamMember?.name || 'Piyush Sharma';
+  const founderRole = teamMember?.role || 'Founder & Owner';
+  const founderCredentials = teamMember?.credentials || 'B.Tech CSE, IIT Mandi';
 
   const getContent = () => {
     switch (type) {
       case 'about':
+        if (settings?.aboutUsContent) {
+          return {
+            title: `About ${siteName}`,
+            icon: <Heart className="modal-icon text-rose" />,
+            body: <CustomContent text={settings.aboutUsContent} />,
+          };
+        }
         return {
-          title: 'About SocioPath',
+          title: `About ${siteName}`,
           icon: <Heart className="modal-icon text-rose" />,
           body: (
             <div className="modal-content-rich">
               <p className="lead-text">
-                SocioPath is Mumbai's premier weekend retreat platform, curating elite late-night social gatherings that bridge stranger networking with interactive experiences.
+                {siteName} is Mumbai's premier weekend retreat platform, curating elite late-night social gatherings that bridge stranger networking with interactive experiences.
               </p>
-              
+
               <h4>Our Vision</h4>
               <p>
-                We believe modern city life has made authentic human connection rare. SocioPath was born to break the ice. We curate high-end, closed-door socials containing safe spaces for like-minded people to meet, participate in jamming sessions, perform karaoke, and play interactive stranger-icebreaker games.
+                We believe modern city life has made authentic human connection rare. {siteName} was born to break the ice. We curate high-end, closed-door socials containing safe spaces for like-minded people to meet, participate in jamming sessions, perform karaoke, and play interactive stranger-icebreaker games.
               </p>
 
               <h4>The Operations</h4>
@@ -37,34 +62,41 @@ export default function InfoModal({ isOpen, onClose, type }: InfoModalProps) {
                 <div className="founder-header">
                   <GraduationCap className="icon-edu" />
                   <div>
-                    <h5>Piyush Sharma</h5>
-                    <span className="subtitle">Founder & Owner • B.Tech CSE, IIT Mandi</span>
+                    <h5>{founderName}</h5>
+                    <span className="subtitle">{founderRole} • {founderCredentials}</span>
                   </div>
                 </div>
                 <p className="founder-quote">
-                  "SocioPath is designed for those who appreciate premium operations, curated crowds, and genuine conversations. We combine technology, trust, and strict hosting standards to deliver unmatched Mumbai socials."
+                  "{siteName} is designed for those who appreciate premium operations, curated crowds, and genuine conversations. We combine technology, trust, and strict hosting standards to deliver unmatched Mumbai socials."
                 </p>
               </div>
             </div>
           ),
         };
       case 'privacy':
+        if (settings?.privacyPolicyContent) {
+          return {
+            title: 'Privacy Policy',
+            icon: <Shield className="modal-icon text-cyan" />,
+            body: <CustomContent text={settings.privacyPolicyContent} />,
+          };
+        }
         return {
           title: 'Privacy Policy',
           icon: <Shield className="modal-icon text-cyan" />,
           body: (
             <div className="modal-content-rich">
               <p className="last-updated">Last Updated: July 2026</p>
-              
+
               <p>
-                At SocioPath, we take your privacy and database security extremely seriously. This policy outlines how we collect, store, and process your details.
+                At {siteName}, we take your privacy and database security extremely seriously. This policy outlines how we collect, store, and process your details.
               </p>
 
               <h4>1. Information We Collect</h4>
               <ul>
                 <li><strong>Profile Info:</strong> Name, Google Avatar, Gender, Mobile Number, City, Hometown, Date of Birth, Occupation, and Instagram Username.</li>
                 <li><strong>Authentication:</strong> We use secure Google OAuth. We only request basic user identity metadata (email, public name, picture). We never store your Google password.</li>
-                <li><strong>Payment Data:</strong> All payments are processed through Razorpay. We do not store credit card numbers or banking secrets on our SQLite servers.</li>
+                <li><strong>Payment Data:</strong> All payments are processed through Razorpay. We do not store credit card numbers or banking secrets on our servers.</li>
               </ul>
 
               <h4>2. How We Use Information</h4>
@@ -80,6 +112,13 @@ export default function InfoModal({ isOpen, onClose, type }: InfoModalProps) {
           ),
         };
       case 'terms':
+        if (settings?.termsContent) {
+          return {
+            title: 'Terms of Service',
+            icon: <ScrollText className="modal-icon text-indigo" />,
+            body: <CustomContent text={settings.termsContent} />,
+          };
+        }
         return {
           title: 'Terms of Service',
           icon: <ScrollText className="modal-icon text-indigo" />,
@@ -89,7 +128,7 @@ export default function InfoModal({ isOpen, onClose, type }: InfoModalProps) {
 
               <h4>1. Age & Legal Compliance (Maharashtra State)</h4>
               <p>
-                SocioPath experiences are strictly Bring Your Own Drinks (BYOD) compliant. By booking a ticket, you affirm that you are of legal drinking age in the State of Maharashtra (21 years for beer and mild wines, 25 years for hard spirits and liquors). Host venues reserve the right to inspect Government IDs at the door.
+                {siteName} experiences are strictly Bring Your Own Drinks (BYOD) compliant. By booking a ticket, you affirm that you are of legal drinking age in the State of Maharashtra (21 years for beer and mild wines, 25 years for hard spirits and liquors). Host venues reserve the right to inspect Government IDs at the door.
               </p>
 
               <h4>2. Booking Cancellations & Refunds</h4>
@@ -105,7 +144,7 @@ export default function InfoModal({ isOpen, onClose, type }: InfoModalProps) {
 
               <h4>4. Code of Conduct</h4>
               <p>
-                We operate under zero-tolerance safety policies. Harassment, verbal abuse, or non-consensual behavior at our socials will result in immediate expulsion by venue security and permanent blacklist from SocioPath.
+                We operate under zero-tolerance safety policies. Harassment, verbal abuse, or non-consensual behavior at our socials will result in immediate expulsion by venue security and permanent blacklist from {siteName}.
               </p>
             </div>
           ),

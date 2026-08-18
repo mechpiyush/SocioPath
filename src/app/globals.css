@@ -50,7 +50,11 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  /* overflow-x: clip (not hidden) — hidden forces overflow-y to compute as
+     auto on this ancestor, which breaks position:sticky on descendants
+     (e.g. the site header). clip avoids that while still preventing
+     horizontal scroll/pan issues from any accidental overflow. */
+  overflow-x: clip;
   color-scheme: dark;
 }
 

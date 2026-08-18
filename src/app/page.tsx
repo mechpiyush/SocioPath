@@ -49,6 +49,7 @@ export default function Home() {
   const [lastBooking, setLastBooking] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'profile' | 'bookings'>('bookings');
+  const [siteSettings, setSiteSettings] = useState<any>(null);
 
   // Site Loading screen states
   const [siteLoading, setSiteLoading] = useState(true);
@@ -72,7 +73,15 @@ export default function Home() {
             .catch((err) => console.error('Failed to load session:', err)),
 
           // 2. Fetch events
-          fetchEvents()
+          fetchEvents(),
+
+          // 3. Fetch site settings
+          fetch('/api/settings')
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) setSiteSettings(data.settings);
+            })
+            .catch((err) => console.error('Failed to load site settings:', err)),
         ]);
       } catch (err) {
         console.error('Failed to initialize app state:', err);
@@ -216,7 +225,7 @@ export default function Home() {
       key: orderData.keyId,
       amount: orderData.amount,
       currency: 'INR',
-      name: 'SocioPath',
+      name: siteSettings?.siteName || 'SocioPath',
       description: orderData.eventTitle,
       order_id: orderData.razorpayOrderId,
       prefill: {
@@ -279,8 +288,8 @@ export default function Home() {
         <div className={`site-loading-screen ${!siteLoading ? 'fade-out' : ''}`} id="site-loading-overlay">
           <div className="loading-screen-content">
             <span className="logo-icon-glow-large"></span>
-            <h1 className="loading-logo-text">SocioPath</h1>
-            <p className="loading-subtitle">Mumbai's Premium Late-Night Social Experience</p>
+            <h1 className="loading-logo-text">{siteSettings?.siteName || 'SocioPath'}</h1>
+            <p className="loading-subtitle">{siteSettings?.tagline || "Mumbai's Premium Late-Night Social Experience"}</p>
             <div className="loading-bar-container">
               <div className="loading-bar-progress"></div>
             </div>
@@ -291,6 +300,8 @@ export default function Home() {
       {/* Navigation Header */}
       <Header
         user={user}
+        siteName={siteSettings?.siteName}
+        logoUrl={siteSettings?.logoUrl}
         onOpenAuth={() => setActiveModal('auth')}
         onOpenProfile={(tab) => {
           setProfileInitialTab(tab || 'bookings');
@@ -414,7 +425,7 @@ export default function Home() {
       <ReviewsSection user={user} />
 
       {/* Booking Simulator Overlay */}
-      {bookingLoading && (
+      {bookingLoading && activeModal !== 'success' && (
         <div className="loading-overlay" id="checkout-spinner-overlay">
           <div className="loading-spinner-box glass-panel animate-scale-up">
             <span className="spinner-loader"></span>
@@ -495,7 +506,14 @@ export default function Home() {
       )}
 
       {/* Main Footer */}
-      <Footer onOpenInfo={(type) => { setInfoModalType(type); setIsInfoModalOpen(true); }} />
+      <Footer
+        onOpenInfo={(type) => { setInfoModalType(type); setIsInfoModalOpen(true); }}
+        siteName={siteSettings?.siteName}
+        supportEmail={siteSettings?.supportEmail}
+        linkedinUrl={siteSettings?.linkedinUrl}
+        teamMembers={siteSettings?.teamMembers}
+        footerText={siteSettings?.footerText}
+      />
 
       <InfoModal
         isOpen={isInfoModalOpen}
@@ -504,6 +522,7 @@ export default function Home() {
           setInfoModalType('');
         }}
         type={infoModalType}
+        settings={siteSettings}
       />
 
       <style jsx global>{`

@@ -425,6 +425,7 @@ export default function ProfileModal({ isOpen, initialTab = 'bookings', onClose,
       <BookingDetailModal
         isOpen={!!selectedBooking}
         booking={selectedBooking}
+        userName={user?.name}
         onClose={() => setSelectedBooking(null)}
       />
 

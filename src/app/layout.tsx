@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
 import Script from "next/script";
+import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -15,12 +16,16 @@ const outfit = Outfit({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "SocioPath | Premium Late-Night Social Experience in Mumbai",
-  description: "Book exclusive late-night weekend villa retreats in Mumbai. Join Friday Night Jam (music & karaoke) or Saturday Night Social (stranger icebreakers & board games). BYOD-friendly, ₹1,500 all-inclusive.",
-  keywords: ["SocioPath", "Mumbai late night", "weekend social", "villa party Mumbai", "karaoke Mumbai", "stranger meetups", "networking Mumbai", "Piyush Sharma"],
-  authors: [{ name: "Piyush Sharma" }],
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: settings.metaTitle,
+    description: settings.metaDescription,
+    keywords: settings.metaKeywords.split(',').map((k) => k.trim()).filter(Boolean),
+    authors: [{ name: "Piyush Sharma" }],
+    icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+  };
+}
 
 export default function RootLayout({
   children,

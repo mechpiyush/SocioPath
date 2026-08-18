@@ -195,6 +195,7 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
               <p>No reviews posted yet. Be the first to share your experience!</p>
             </div>
           ) : (
+            <>
             <div className="reviews-scroll-container">
               {displayedReviews.map((review) => {
                 const reviewDate = new Date(review.createdAt).toLocaleDateString('en-IN', {
@@ -238,15 +239,16 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
                   </div>
                 );
               })}
-              {reviews.length > 2 && (
-                <button 
-                  className="view-all-reviews-btn"
-                  onClick={() => setShowAllReviews(!showAllReviews)}
-                >
-                  {showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}
-                </button>
-              )}
             </div>
+            {reviews.length > 2 && (
+              <button
+                className="view-all-reviews-btn"
+                onClick={() => setShowAllReviews(!showAllReviews)}
+              >
+                {showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}
+              </button>
+            )}
+            </>
           )}
         </div>
       </div>
@@ -524,7 +526,8 @@ export default function ReviewsSection({ user }: ReviewsSectionProps) {
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
-          margin-top: 0.5rem;
+          margin-top: 1rem;
+          width: 100%;
         }
         .view-all-reviews-btn:hover {
           background: rgba(255, 255, 255, 0.1);

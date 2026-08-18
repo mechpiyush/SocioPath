@@ -6,12 +6,14 @@ import { User, Shield, ChevronDown, Ticket, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   user: any;
+  siteName?: string;
+  logoUrl?: string;
   onOpenAuth: () => void;
   onOpenProfile: (tab?: 'profile' | 'bookings') => void;
   onSignOut: () => void;
 }
 
-export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: HeaderProps) {
+export default function Header({ user, siteName, logoUrl, onOpenAuth, onOpenProfile, onSignOut }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -31,8 +33,13 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
         {/* Brand Logo */}
         <div className="brand-logo-wrapper" id="brand-logo">
           <a href="#" className="brand-logo-link">
-            <span className="logo-icon-glow"></span>
-            <span className="brand-text">SocioPath</span>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={siteName || 'SocioPath'} className="brand-logo-img" />
+            ) : (
+              <span className="logo-icon-glow"></span>
+            )}
+            <span className="brand-text">{siteName || 'SocioPath'}</span>
           </a>
         </div>
 
@@ -151,6 +158,12 @@ export default function Header({ user, onOpenAuth, onOpenProfile, onSignOut }: H
           background: var(--accent-cyan);
           box-shadow: 0 0 12px 2px var(--accent-cyan);
           display: inline-block;
+        }
+        .brand-logo-img {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          object-fit: cover;
         }
         .brand-text {
           background: linear-gradient(135deg, #fff 50%, var(--accent-indigo) 100%);
